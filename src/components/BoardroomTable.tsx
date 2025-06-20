@@ -33,12 +33,51 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   const [isHoveringBubble, setIsHoveringBubble] = useState(false);
   const [pausedByHover, setPausedByHover] = useState(false);
 
-  // Enhanced calculation for message display duration based on text complexity
-  const calculateMessageDuration = (message: string): number => {
+  // Calculate dynamic conversation settings based on topic duration
+  const getConversationSettings = (topicDuration: number) => {
+    // Base settings for different duration ranges
+    if (topicDuration <= 5) {
+      // Very short meetings (1-5 minutes): Quick, focused exchanges
+      return {
+        targetMessages: Math.max(4, topicDuration * 1), // 1 message per minute minimum
+        conversationInterval: 8000, // 8 seconds between messages
+        messageReadingMultiplier: 1.5, // Faster reading for urgency
+        responseComplexity: 'concise' // Shorter, more direct responses
+      };
+    } else if (topicDuration <= 10) {
+      // Short meetings (6-10 minutes): Moderate discussion
+      return {
+        targetMessages: topicDuration * 1.2, // ~1.2 messages per minute
+        conversationInterval: 6000, // 6 seconds between messages
+        messageReadingMultiplier: 1.8,
+        responseComplexity: 'moderate'
+      };
+    } else if (topicDuration <= 20) {
+      // Medium meetings (11-20 minutes): Rich discussion
+      return {
+        targetMessages: topicDuration * 0.8, // ~0.8 messages per minute
+        conversationInterval: 4500, // 4.5 seconds between messages
+        messageReadingMultiplier: 2.0,
+        responseComplexity: 'detailed'
+      };
+    } else {
+      // Long meetings (20+ minutes): Deep, thorough analysis
+      return {
+        targetMessages: topicDuration * 0.6, // ~0.6 messages per minute
+        conversationInterval: 3500, // 3.5 seconds between messages
+        messageReadingMultiplier: 2.5, // Longer reading time for complex content
+        responseComplexity: 'comprehensive'
+      };
+    }
+  };
+
+  // Enhanced calculation for message display duration based on text complexity AND topic duration
+  const calculateMessageDuration = (message: string, topicDuration: number = 15): number => {
     if (!message || message.trim().length === 0) return 4000;
     
-    const baseTime = 5000; // Increased base time to 5 seconds minimum
-    const wordsPerMinute = 150; // Slower reading speed for complex executive content
+    const settings = getConversationSettings(topicDuration);
+    const baseTime = 4000; // 4 seconds minimum
+    const wordsPerMinute = 120; // Reading speed
     const words = message.trim().split(/\s+/).length;
     
     // Calculate reading time in milliseconds
@@ -46,28 +85,26 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     
     // Add extra time for complex sentences and punctuation
     const sentences = message.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
-    const complexityBonus = sentences * 800; // 800ms per sentence
+    const complexityBonus = sentences * 600; // 600ms per sentence
     
     // Add time for commas and semicolons (pause points)
     const pausePoints = (message.match(/[,;]/g) || []).length;
-    const pauseBonus = pausePoints * 400; // 400ms per pause point
+    const pauseBonus = pausePoints * 300; // 300ms per pause point
     
     // Add bonus for longer words (technical/business terms)
     const longWords = message.split(/\s+/).filter(word => word.length > 8).length;
-    const technicalBonus = longWords * 200; // 200ms per complex word
+    const technicalBonus = longWords * 150; // 150ms per complex word
     
-    // Calculate total duration with comprehension multiplier
-    const totalDuration = readingTime * 2.2 + complexityBonus + pauseBonus + technicalBonus;
+    // Apply duration multiplier based on topic duration
+    const totalDuration = (readingTime + complexityBonus + pauseBonus + technicalBonus) * settings.messageReadingMultiplier;
     
-    // Ensure minimum 5 seconds, maximum 30 seconds for very long messages
-    const duration = Math.max(baseTime, Math.min(totalDuration, 30000));
+    // Ensure minimum time, maximum based on topic duration
+    const maxDuration = topicDuration <= 5 ? 15000 : topicDuration <= 10 ? 20000 : 30000;
+    const duration = Math.max(baseTime, Math.min(totalDuration, maxDuration));
     
-    console.log(`📊 Message duration calculation for "${message.substring(0, 30)}...":
-      📝 Words: ${words} | Sentences: ${sentences} | Pause points: ${pausePoints} | Long words: ${longWords}
-      ⏱️ Reading time: ${(readingTime/1000).toFixed(1)}s
-      🧠 Complexity bonus: ${(complexityBonus/1000).toFixed(1)}s
-      ⏸️ Pause bonus: ${(pauseBonus/1000).toFixed(1)}s
-      🔬 Technical bonus: ${(technicalBonus/1000).toFixed(1)}s
+    console.log(`📊 Message duration for ${topicDuration}min topic: "${message.substring(0, 30)}...":
+      📝 Words: ${words} | Sentences: ${sentences} | Complexity: ${settings.responseComplexity}
+      ⏱️ Base reading: ${(readingTime/1000).toFixed(1)}s | Multiplier: ${settings.messageReadingMultiplier}x
       ✅ Final duration: ${(duration/1000).toFixed(1)}s`);
     
     return duration;
@@ -90,7 +127,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
         // Restart timers for active messages
         Object.entries(currentMessages).forEach(([agentRole, message]) => {
           if (message && activeMembers.includes(agentRole)) {
-            const duration = calculateMessageDuration(message);
+            const duration = calculateMessageDuration(message, currentTopic?.estimatedDuration);
             const timeoutId = setTimeout(() => {
               console.log(`⏰ Clearing message for ${agentRole} after hover resume`);
               setActiveMembers(prev => prev.filter(member => member !== agentRole));
@@ -192,13 +229,22 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     }
   }, [currentTopic?.id, stateManager, onTopicStateChange]);
 
-  // Enhanced conversation system with proper timeout management and hover/pause controls
+  // Enhanced conversation system with dynamic frequency based on topic duration
   useEffect(() => {
     // Don't start new conversations if paused, interrupting, hovering, or no agents
     if (isPaused || isInterrupting || pausedByHover || isHoveringBubble || agents.length === 0 || !currentTopic || !stateManager) return;
     
     const currentState = stateManager.getTopicState(currentTopic.id);
     if (!currentState || currentState.status === 'completed') return;
+
+    // Get dynamic conversation settings based on topic duration
+    const conversationSettings = getConversationSettings(currentTopic.estimatedDuration);
+    
+    console.log(`🎯 Topic "${currentTopic.title}" (${currentTopic.estimatedDuration}min) - Settings:`, {
+      targetMessages: conversationSettings.targetMessages,
+      interval: conversationSettings.conversationInterval,
+      complexity: conversationSettings.responseComplexity
+    });
 
     const interval = setInterval(async () => {
       // Check if we should still proceed (not paused by hover or manual pause)
@@ -210,6 +256,12 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
         return;
       }
 
+      // Check if we've reached the target message count for this duration
+      if (latestState.messageCount >= conversationSettings.targetMessages) {
+        console.log(`📊 Reached target message count (${conversationSettings.targetMessages}) for ${currentTopic.estimatedDuration}min topic`);
+        return;
+      }
+
       const allMessages = stateManager.getTopicMessages(currentTopic.id);
       setConversationContext(allMessages);
 
@@ -218,7 +270,13 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
 
       const randomAgent = availableAgents[Math.floor(Math.random() * availableAgents.length)];
       const recentMessages = allMessages.slice(-5);
-      const shouldRespond = randomAgent.shouldRespond(recentMessages, currentTopic);
+      
+      // Adjust response probability based on topic duration and current progress
+      const progressRatio = latestState.messageCount / conversationSettings.targetMessages;
+      const baseResponseChance = currentTopic.estimatedDuration <= 5 ? 0.9 : 0.7; // Higher chance for short meetings
+      const adjustedResponseChance = baseResponseChance * (1 - progressRatio * 0.3); // Reduce frequency as we approach target
+      
+      const shouldRespond = randomAgent.shouldRespond(recentMessages, currentTopic) && Math.random() < adjustedResponseChance;
       
       if (shouldRespond) {
         try {
@@ -228,11 +286,11 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             userInput: isInterrupted ? 'Consider the user input and adjust the discussion accordingly' : undefined
           });
           
-          // Calculate duration with enhanced timing
-          const duration = calculateMessageDuration(response);
+          // Calculate duration with topic-aware timing
+          const duration = calculateMessageDuration(response, currentTopic.estimatedDuration);
           const agentRole = randomAgent.getAgent().role;
           
-          console.log(`🎯 ${agentRole} speaking for ${(duration/1000).toFixed(1)}s: "${response.substring(0, 60)}..."`);
+          console.log(`🎯 ${agentRole} speaking (${currentTopic.estimatedDuration}min topic) for ${(duration/1000).toFixed(1)}s: "${response.substring(0, 60)}..."`);
           
           // Clear any existing timeout for this agent
           if (activeTimeouts[agentRole]) {
@@ -296,7 +354,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
           console.error('Error generating agent response:', error);
         }
       }
-    }, 5000); // Increased interval to 5 seconds for better pacing
+    }, conversationSettings.conversationInterval); // Use dynamic interval
 
     return () => clearInterval(interval);
   }, [isPaused, isInterrupting, pausedByHover, isHoveringBubble, agents, currentTopic, stateManager, isInterrupted, activeTimeouts]);
@@ -316,7 +374,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
         console.log('▶️ Conversation resumed - restarting message timers');
         Object.entries(currentMessages).forEach(([agentRole, message]) => {
           if (message && activeMembers.includes(agentRole)) {
-            const duration = calculateMessageDuration(message);
+            const duration = calculateMessageDuration(message, currentTopic?.estimatedDuration);
             const timeoutId = setTimeout(() => {
               console.log(`⏰ Clearing message for ${agentRole} after resume`);
               setActiveMembers(prev => prev.filter(member => member !== agentRole));
@@ -447,7 +505,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
         </div>
       )}
 
-      {/* Current Topic Indicator with Progress */}
+      {/* Current Topic Indicator with Progress and Duration Info */}
       {currentTopic && topicState && (
         <div className="absolute top-4 left-4 z-20">
           <div className="space-y-2">
@@ -470,7 +528,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
                     ></div>
                   </div>
                   <span className="text-xs text-slate-300">
-                    {topicState.messageCount} msgs • {topicState.completionPercentage}%
+                    {topicState.messageCount} msgs • {topicState.completionPercentage}% • {currentTopic.estimatedDuration}min
                   </span>
                 </div>
               </div>

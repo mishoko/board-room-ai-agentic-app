@@ -38,7 +38,7 @@ export class TopicStateManager {
     this.topicStates.set(topic.id, initialState);
     this.topicMessages.set(topic.id, []);
     
-    console.log(`Topic ${topic.id} initialized for tracking`);
+    console.log(`Topic ${topic.id} initialized for tracking (${topic.estimatedDuration} minutes)`);
   }
 
   // Start tracking a topic
@@ -59,7 +59,7 @@ export class TopicStateManager {
     this.topicStates.set(topicId, updatedState);
     this.topicStartTimes.set(topicId, new Date());
     
-    console.log(`Topic ${topicId} started tracking`);
+    console.log(`Topic ${topicId} started tracking (${state.estimatedDuration} min duration)`);
   }
 
   // Add a message to topic tracking
@@ -93,17 +93,17 @@ export class TopicStateManager {
       }
     };
 
-    // Update completion percentage
+    // Update completion percentage based on duration and message targets
     updatedState.completionPercentage = this.calculateCompletionPercentage(updatedState);
 
     this.topicStates.set(topicId, updatedState);
 
-    // Check if topic should be completed
+    // Check if topic should be completed based on duration-aware criteria
     if (this.shouldCompleteTopic(updatedState)) {
       this.completeTopic(topicId);
     }
 
-    console.log(`Message added to topic ${topicId}. Total messages: ${messages.length}`);
+    console.log(`Message added to topic ${topicId} (${state.estimatedDuration}min). Total messages: ${messages.length}`);
   }
 
   // Calculate topic relevance score based on content analysis
@@ -126,28 +126,50 @@ export class TopicStateManager {
     return Math.round(score);
   }
 
-  // Calculate completion percentage
+  // Enhanced completion percentage calculation based on duration and message targets
   private calculateCompletionPercentage(state: TopicState): number {
-    const messageWeight = Math.min(100, (state.messageCount / 8) * 60); // 60% weight for messages (target: 8 messages)
+    // Calculate target messages based on duration (similar to BoardroomTable logic)
+    const getTargetMessages = (duration: number): number => {
+      if (duration <= 5) return Math.max(4, duration * 1);
+      if (duration <= 10) return duration * 1.2;
+      if (duration <= 20) return duration * 0.8;
+      return duration * 0.6;
+    };
+
+    const targetMessages = getTargetMessages(state.estimatedDuration);
+    const messageWeight = Math.min(100, (state.messageCount / targetMessages) * 70); // 70% weight for messages
     
     let timeWeight = 0;
     if (state.startTime) {
       const elapsedMinutes = (Date.now() - state.startTime.getTime()) / (1000 * 60);
-      timeWeight = Math.min(100, (elapsedMinutes / state.estimatedDuration) * 40); // 40% weight for time
+      timeWeight = Math.min(100, (elapsedMinutes / state.estimatedDuration) * 30); // 30% weight for time
     }
     
     return Math.round(messageWeight + timeWeight);
   }
 
-  // Check if topic should be completed
+  // Enhanced completion criteria based on duration-aware targets
   private shouldCompleteTopic(state: TopicState): boolean {
     if (state.status !== 'active') return false;
     
-    const hasMinimumMessages = state.messageCount >= 6;
-    const hasReachedTimeThreshold = state.completionPercentage >= 80;
-    const hasMaxMessages = state.messageCount >= 12;
+    // Calculate dynamic targets based on duration
+    const getTargetMessages = (duration: number): number => {
+      if (duration <= 5) return Math.max(4, duration * 1);
+      if (duration <= 10) return duration * 1.2;
+      if (duration <= 20) return duration * 0.8;
+      return duration * 0.6;
+    };
+
+    const targetMessages = getTargetMessages(state.estimatedDuration);
+    const hasReachedMessageTarget = state.messageCount >= targetMessages;
+    const hasReachedTimeThreshold = state.completionPercentage >= 85;
+    const hasMaxMessages = state.messageCount >= Math.max(targetMessages * 1.5, 15); // Cap at 1.5x target or 15 messages
     
-    return hasMinimumMessages && (hasReachedTimeThreshold || hasMaxMessages);
+    console.log(`📊 Topic completion check (${state.estimatedDuration}min):
+      Target messages: ${targetMessages} | Current: ${state.messageCount}
+      Completion: ${state.completionPercentage}% | Max messages: ${Math.max(targetMessages * 1.5, 15)}`);
+    
+    return hasReachedMessageTarget && (hasReachedTimeThreshold || hasMaxMessages);
   }
 
   // Complete a topic
@@ -179,7 +201,7 @@ export class TopicStateManager {
       callback(topicId, completedState);
     }
 
-    console.log(`Topic ${topicId} completed. Duration: ${actualDuration.toFixed(1)} minutes, Messages: ${state.messageCount}`);
+    console.log(`Topic ${topicId} completed (${state.estimatedDuration}min planned). Duration: ${actualDuration.toFixed(1)} minutes, Messages: ${state.messageCount}`);
   }
 
   // Register completion callback
@@ -215,16 +237,26 @@ export class TopicStateManager {
     duration: number;
     participants: number;
     relevanceScore: number;
+    targetMessages?: number;
   } | null {
     const state = this.topicStates.get(topicId);
     if (!state) return null;
+
+    // Calculate target messages for context
+    const getTargetMessages = (duration: number): number => {
+      if (duration <= 5) return Math.max(4, duration * 1);
+      if (duration <= 10) return duration * 1.2;
+      if (duration <= 20) return duration * 0.8;
+      return duration * 0.6;
+    };
 
     return {
       isCompleted: state.status === 'completed',
       messageCount: state.messageCount,
       duration: state.actualDuration,
       participants: state.participantCount,
-      relevanceScore: state.keyMetrics.topicRelevanceScore
+      relevanceScore: state.keyMetrics.topicRelevanceScore,
+      targetMessages: getTargetMessages(state.estimatedDuration)
     };
   }
 
