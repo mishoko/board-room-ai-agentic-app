@@ -19,6 +19,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     goals: []
   });
   const [currentStep, setCurrentStep] = useState<'agents' | 'topics' | 'context' | 'review'>('agents');
+  const [newChallenge, setNewChallenge] = useState('');
+  const [newGoal, setNewGoal] = useState('');
 
   // Available agent templates
   const availableAgents: Omit<Agent, 'id' | 'isActive'>[] = [
@@ -265,9 +267,6 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   );
 
   const renderContextSetup = () => {
-    const [newChallenge, setNewChallenge] = useState('');
-    const [newGoal, setNewGoal] = useState('');
-
     return (
       <div className="space-y-6">
         <div className="text-center">
