@@ -721,7 +721,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     </div>
   );
 
-  // Simplified loading overlay without progress text
+  // Clean loading overlay without the extra section
   if (isGeneratingResponses) {
     return (
       <div className="min-h-screen bg-slate-900 relative overflow-hidden">
@@ -733,18 +733,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
               <Loader2 className="w-10 h-10 text-white animate-spin" />
             </div>
             <h2 className="text-3xl font-bold text-white mb-4">Preparing Your AI Executive Boardroom</h2>
-            <div className="w-80 h-3 bg-slate-700 rounded-full overflow-hidden mx-auto mb-6">
+            <div className="w-80 h-3 bg-slate-700 rounded-full overflow-hidden mx-auto">
               <div className="h-full bg-gradient-to-r from-blue-500 via-purple-600 to-indigo-600 rounded-full animate-pulse"></div>
-            </div>
-            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-              <p className="text-sm text-slate-400 mb-3">
-                Generating sophisticated responses for <span className="text-white font-medium">{selectedAgents.length} executives</span> across <span className="text-white font-medium">{topics.length} strategic topics</span>
-              </p>
-              <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
-                <span>• Advanced domain expertise</span>
-                <span>• Critical thinking patterns</span>
-                <span>• Challenging perspectives</span>
-              </div>
             </div>
           </div>
         </div>
