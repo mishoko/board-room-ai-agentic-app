@@ -24,7 +24,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const [newGoal, setNewGoal] = useState('');
   const [isGeneratingResponses, setIsGeneratingResponses] = useState(false);
 
-  // Enhanced agent templates with deeper expertise
+  // Enhanced agent templates with deeper expertise - ALL 6 EXECUTIVES
   const availableAgents: Omit<Agent, 'id' | 'isActive'>[] = [
     {
       role: 'CEO',
@@ -156,7 +156,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         description: topic.description,
         priority: topic.priority
       }));
-      
+
       // Generate all responses with enhanced sophistication
       const agentResponsesMap = await llmService.generateAllAgentResponses(
         agentData,
@@ -176,7 +176,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         // Store generated responses in session for later use
         agentResponses: agentResponsesMap
       };
-      
+
       // Small delay for smooth transition
       setTimeout(() => {
         onSessionStart(session);
@@ -209,7 +209,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         <p className="text-sm text-slate-400 mt-1">Selected: {selectedAgents.length}/10 • Each executive brings deep domain expertise and critical thinking</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Updated grid to ensure all 6 cards are visible */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {availableAgents.map((agent) => {
           const isSelected = selectedAgents.some(selected => selected.role === agent.role);
           const canSelect = selectedAgents.length < 10 || isSelected;
