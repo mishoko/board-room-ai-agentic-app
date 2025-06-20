@@ -26,6 +26,20 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   const [userMessage, setUserMessage] = useState('');
   const [currentMessages, setCurrentMessages] = useState<{[key: string]: string}>({});
   const [topicState, setTopicState] = useState<TopicState | null>(null);
+  const [messageDurations, setMessageDurations] = useState<{[key: string]: number}>({});
+
+  // Calculate display duration based on message length
+  const calculateMessageDuration = (message: string): number => {
+    const baseTime = 2000; // 2 seconds minimum
+    const wordsPerMinute = 200; // Average reading speed
+    const words = message.trim().split(/\s+/).length;
+    const readingTime = (words / wordsPerMinute) * 60 * 1000; // Convert to milliseconds
+    
+    // Ensure minimum 2 seconds, maximum 15 seconds
+    const duration = Math.max(baseTime, Math.min(readingTime * 1.5, 15000));
+    
+    return duration;
+  };
 
   // Initialize topic in state manager when topic changes
   useEffect(() => {
@@ -46,6 +60,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       setTopicState(state);
       setCurrentMessages({});
       setActiveMembers([]);
+      setMessageDurations({});
       
       // Register completion callback
       if (state && onTopicStateChange) {
@@ -57,7 +72,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     }
   }, [currentTopic?.id, stateManager, onTopicStateChange]);
 
-  // Enhanced conversation system with state manager integration
+  // Enhanced conversation system with state manager integration and dynamic durations
   useEffect(() => {
     if (isPaused || isInterrupting || agents.length === 0 || !currentTopic || !stateManager) return;
     
@@ -90,10 +105,19 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             topic: currentTopic
           });
           
+          // Calculate duration for this specific message
+          const duration = calculateMessageDuration(response);
+          
           setActiveMembers([randomAgent.getAgent().role]);
           setCurrentMessages(prev => ({
             ...prev,
             [randomAgent.getAgent().role]: response
+          }));
+          
+          // Store the duration for this agent's message
+          setMessageDurations(prev => ({
+            ...prev,
+            [randomAgent.getAgent().role]: duration
           }));
           
           // Create message object
@@ -115,10 +139,20 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
           // Add to agent's conversation history
           randomAgent.addToHistory(message);
           
-          // Clear active member after 3 seconds
+          // Clear active member after calculated duration
           setTimeout(() => {
-            setActiveMembers([]);
-          }, 3000);
+            setActiveMembers(prev => prev.filter(member => member !== randomAgent.getAgent().role));
+            setCurrentMessages(prev => {
+              const updated = { ...prev };
+              delete updated[randomAgent.getAgent().role];
+              return updated;
+            });
+            setMessageDurations(prev => {
+              const updated = { ...prev };
+              delete updated[randomAgent.getAgent().role];
+              return updated;
+            });
+          }, duration);
           
         } catch (error) {
           console.error('Error generating agent response:', error);
