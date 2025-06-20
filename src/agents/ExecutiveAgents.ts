@@ -2,6 +2,15 @@ import { BoardAgentBase } from './BoardAgentBase';
 import { Agent, Message, Topic } from '../types';
 
 export class CEOAgent extends BoardAgentBase {
+  private responsePool: string[] = [];
+  private usedResponses: Set<string> = new Set();
+
+  // Set pre-generated responses for this topic
+  public setTopicResponses(responses: string[]): void {
+    this.responsePool = responses;
+    this.usedResponses.clear();
+  }
+
   async generateResponse(
     prompt: string,
     context: {
@@ -10,22 +19,30 @@ export class CEOAgent extends BoardAgentBase {
       userInput?: string;
     }
   ): Promise<string> {
-    // For now, using predefined responses. Later integrate with LLM API
-    const ceoResponses = [
-      `From a strategic perspective on ${context.topic.title}, we need to align this with our company vision and market positioning.`,
-      `I'm concerned about the long-term implications of this decision. How does it affect our competitive advantage?`,
-      `Let's ensure we're considering all stakeholders - customers, employees, and shareholders - in this discussion.`,
-      `The board expects measurable results. What are our key performance indicators for this initiative?`,
-      `We should also consider the regulatory environment and potential compliance issues.`,
-      `This aligns well with our growth strategy, but we need to manage execution risks carefully.`
-    ];
-
-    // Simple context-aware selection (can be enhanced with AI)
+    // If user input is provided, generate a contextual response
     if (context.userInput) {
-      return `Thank you for that input. As CEO, I think we should carefully consider how this affects our overall strategy for ${context.topic.title}.`;
+      return `Thank you for that input. As CEO, I think we should carefully evaluate how this affects our strategic approach to ${context.topic.title} and ensure it aligns with our company's long-term vision.`;
     }
 
-    return ceoResponses[Math.floor(Math.random() * ceoResponses.length)];
+    // Use pre-generated responses from LLM
+    if (this.responsePool.length > 0) {
+      // Find an unused response, or reset if all have been used
+      const availableResponses = this.responsePool.filter(response => !this.usedResponses.has(response));
+      
+      if (availableResponses.length === 0) {
+        // Reset used responses if we've exhausted the pool
+        this.usedResponses.clear();
+      }
+      
+      const responses = availableResponses.length > 0 ? availableResponses : this.responsePool;
+      const selectedResponse = responses[Math.floor(Math.random() * responses.length)];
+      this.usedResponses.add(selectedResponse);
+      
+      return selectedResponse;
+    }
+
+    // Fallback to basic response if no pre-generated responses available
+    return `From a strategic perspective on ${context.topic.title}, we need to align this with our company vision and market positioning.`;
   }
 
   shouldRespond(recentMessages: Message[], topic: Topic, keywords?: string[]): boolean {
@@ -43,6 +60,14 @@ export class CEOAgent extends BoardAgentBase {
 }
 
 export class CTOAgent extends BoardAgentBase {
+  private responsePool: string[] = [];
+  private usedResponses: Set<string> = new Set();
+
+  public setTopicResponses(responses: string[]): void {
+    this.responsePool = responses;
+    this.usedResponses.clear();
+  }
+
   async generateResponse(
     prompt: string,
     context: {
@@ -51,21 +76,25 @@ export class CTOAgent extends BoardAgentBase {
       userInput?: string;
     }
   ): Promise<string> {
-    const ctoResponses = [
-      `From a technical standpoint, we need to consider the infrastructure requirements for ${context.topic.title}.`,
-      `The engineering team has been working on similar challenges. We have some proven solutions we can leverage.`,
-      `We should evaluate the technical risks and ensure we have proper testing and monitoring in place.`,
-      `This will require significant development resources. I recommend we prioritize this in our next sprint planning.`,
-      `We need to consider scalability and performance implications from the start.`,
-      `The security aspects of this initiative are critical. We must implement proper safeguards.`,
-      `Our current tech stack can support this, but we may need to upgrade some components.`
-    ];
-
     if (context.userInput) {
-      return `From a technical perspective, I think we need to evaluate the feasibility and resource requirements for what you've suggested regarding ${context.topic.title}.`;
+      return `From a technical perspective, I think we need to evaluate the feasibility and infrastructure requirements for what you've suggested regarding ${context.topic.title}.`;
     }
 
-    return ctoResponses[Math.floor(Math.random() * ctoResponses.length)];
+    if (this.responsePool.length > 0) {
+      const availableResponses = this.responsePool.filter(response => !this.usedResponses.has(response));
+      
+      if (availableResponses.length === 0) {
+        this.usedResponses.clear();
+      }
+      
+      const responses = availableResponses.length > 0 ? availableResponses : this.responsePool;
+      const selectedResponse = responses[Math.floor(Math.random() * responses.length)];
+      this.usedResponses.add(selectedResponse);
+      
+      return selectedResponse;
+    }
+
+    return `From a technical standpoint, we need to consider the infrastructure requirements for ${context.topic.title}.`;
   }
 
   shouldRespond(recentMessages: Message[], topic: Topic, keywords?: string[]): boolean {
@@ -79,6 +108,14 @@ export class CTOAgent extends BoardAgentBase {
 }
 
 export class CFOAgent extends BoardAgentBase {
+  private responsePool: string[] = [];
+  private usedResponses: Set<string> = new Set();
+
+  public setTopicResponses(responses: string[]): void {
+    this.responsePool = responses;
+    this.usedResponses.clear();
+  }
+
   async generateResponse(
     prompt: string,
     context: {
@@ -87,21 +124,25 @@ export class CFOAgent extends BoardAgentBase {
       userInput?: string;
     }
   ): Promise<string> {
-    const cfoResponses = [
-      `We need to carefully analyze the financial implications of ${context.topic.title}. What's our projected ROI?`,
-      `The budget allocation for this initiative needs to be reviewed against our quarterly targets.`,
-      `From a cost perspective, we should consider both immediate expenses and long-term operational costs.`,
-      `This investment needs to align with our financial planning and cash flow projections.`,
-      `We should establish clear financial metrics to measure the success of this initiative.`,
-      `The risk-reward ratio looks favorable, but we need to monitor expenses closely.`,
-      `Have we considered the tax implications and potential financial incentives available?`
-    ];
-
     if (context.userInput) {
       return `I need to understand the financial impact of your suggestion. Can we quantify the costs and benefits for ${context.topic.title}?`;
     }
 
-    return cfoResponses[Math.floor(Math.random() * cfoResponses.length)];
+    if (this.responsePool.length > 0) {
+      const availableResponses = this.responsePool.filter(response => !this.usedResponses.has(response));
+      
+      if (availableResponses.length === 0) {
+        this.usedResponses.clear();
+      }
+      
+      const responses = availableResponses.length > 0 ? availableResponses : this.responsePool;
+      const selectedResponse = responses[Math.floor(Math.random() * responses.length)];
+      this.usedResponses.add(selectedResponse);
+      
+      return selectedResponse;
+    }
+
+    return `We need to carefully analyze the financial implications of ${context.topic.title}. What's our projected ROI?`;
   }
 
   shouldRespond(recentMessages: Message[], topic: Topic, keywords?: string[]): boolean {
@@ -114,8 +155,151 @@ export class CFOAgent extends BoardAgentBase {
   }
 }
 
-// NOTE: These executive agents provide role-specific responses and decision-making patterns
-// TODO: Integrate with actual LLM API for more sophisticated and contextual responses
-// TODO: Implement agent memory and learning from previous conversations
-// TODO: Add more executive roles (CMO, CHRO, COO, etc.) as needed
-// TODO: Enhance personality traits and communication styles for each role
+export class CMOAgent extends BoardAgentBase {
+  private responsePool: string[] = [];
+  private usedResponses: Set<string> = new Set();
+
+  public setTopicResponses(responses: string[]): void {
+    this.responsePool = responses;
+    this.usedResponses.clear();
+  }
+
+  async generateResponse(
+    prompt: string,
+    context: {
+      recentMessages: Message[];
+      topic: Topic;
+      userInput?: string;
+    }
+  ): Promise<string> {
+    if (context.userInput) {
+      return `From a marketing perspective, we need to consider how this impacts our brand positioning and customer perception regarding ${context.topic.title}.`;
+    }
+
+    if (this.responsePool.length > 0) {
+      const availableResponses = this.responsePool.filter(response => !this.usedResponses.has(response));
+      
+      if (availableResponses.length === 0) {
+        this.usedResponses.clear();
+      }
+      
+      const responses = availableResponses.length > 0 ? availableResponses : this.responsePool;
+      const selectedResponse = responses[Math.floor(Math.random() * responses.length)];
+      this.usedResponses.add(selectedResponse);
+      
+      return selectedResponse;
+    }
+
+    return `From a brand perspective, ${context.topic.title} presents an opportunity to strengthen our market position.`;
+  }
+
+  shouldRespond(recentMessages: Message[], topic: Topic, keywords?: string[]): boolean {
+    const marketingKeywords = ['brand', 'marketing', 'customer', 'market', 'campaign', 'audience'];
+    const hasMarketingContent = keywords?.some(keyword => 
+      marketingKeywords.some(marketing => keyword.includes(marketing))
+    ) || false;
+
+    return Math.random() < (hasMarketingContent ? 0.9 : 0.5);
+  }
+}
+
+export class CHROAgent extends BoardAgentBase {
+  private responsePool: string[] = [];
+  private usedResponses: Set<string> = new Set();
+
+  public setTopicResponses(responses: string[]): void {
+    this.responsePool = responses;
+    this.usedResponses.clear();
+  }
+
+  async generateResponse(
+    prompt: string,
+    context: {
+      recentMessages: Message[];
+      topic: Topic;
+      userInput?: string;
+    }
+  ): Promise<string> {
+    if (context.userInput) {
+      return `From a people perspective, we need to consider the organizational and cultural impact of your suggestion on ${context.topic.title}.`;
+    }
+
+    if (this.responsePool.length > 0) {
+      const availableResponses = this.responsePool.filter(response => !this.usedResponses.has(response));
+      
+      if (availableResponses.length === 0) {
+        this.usedResponses.clear();
+      }
+      
+      const responses = availableResponses.length > 0 ? availableResponses : this.responsePool;
+      const selectedResponse = responses[Math.floor(Math.random() * responses.length)];
+      this.usedResponses.add(selectedResponse);
+      
+      return selectedResponse;
+    }
+
+    return `The people impact of ${context.topic.title} requires careful change management and employee communication strategies.`;
+  }
+
+  shouldRespond(recentMessages: Message[], topic: Topic, keywords?: string[]): boolean {
+    const hrKeywords = ['people', 'team', 'culture', 'talent', 'hiring', 'employee', 'training'];
+    const hasHRContent = keywords?.some(keyword => 
+      hrKeywords.some(hr => keyword.includes(hr))
+    ) || false;
+
+    return Math.random() < (hasHRContent ? 0.9 : 0.5);
+  }
+}
+
+export class COOAgent extends BoardAgentBase {
+  private responsePool: string[] = [];
+  private usedResponses: Set<string> = new Set();
+
+  public setTopicResponses(responses: string[]): void {
+    this.responsePool = responses;
+    this.usedResponses.clear();
+  }
+
+  async generateResponse(
+    prompt: string,
+    context: {
+      recentMessages: Message[];
+      topic: Topic;
+      userInput?: string;
+    }
+  ): Promise<string> {
+    if (context.userInput) {
+      return `From an operational standpoint, we need to assess how your suggestion impacts our processes and execution capabilities for ${context.topic.title}.`;
+    }
+
+    if (this.responsePool.length > 0) {
+      const availableResponses = this.responsePool.filter(response => !this.usedResponses.has(response));
+      
+      if (availableResponses.length === 0) {
+        this.usedResponses.clear();
+      }
+      
+      const responses = availableResponses.length > 0 ? availableResponses : this.responsePool;
+      const selectedResponse = responses[Math.floor(Math.random() * responses.length)];
+      this.usedResponses.add(selectedResponse);
+      
+      return selectedResponse;
+    }
+
+    return `From an operational efficiency standpoint, ${context.topic.title} needs to integrate seamlessly with our existing processes.`;
+  }
+
+  shouldRespond(recentMessages: Message[], topic: Topic, keywords?: string[]): boolean {
+    const operationalKeywords = ['operations', 'process', 'efficiency', 'workflow', 'execution', 'delivery'];
+    const hasOperationalContent = keywords?.some(keyword => 
+      operationalKeywords.some(ops => keyword.includes(ops))
+    ) || false;
+
+    return Math.random() < (hasOperationalContent ? 0.9 : 0.5);
+  }
+}
+
+// NOTE: These executive agents now use pre-generated, contextual responses from LLM
+// TODO: Integrate with actual LLM API for real-time response generation
+// TODO: Implement more sophisticated response selection based on conversation context
+// TODO: Add personality traits and communication styles for each role

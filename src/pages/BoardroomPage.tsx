@@ -4,7 +4,7 @@ import BoardroomTable from '../components/BoardroomTable';
 import Timeline from '../components/Timeline';
 import SummaryPanel from '../components/SummaryPanel';
 import { BoardroomSession, Message, Timeline as TimelineType, Topic, TopicState, TopicSummary } from '../types';
-import { CEOAgent, CTOAgent, CFOAgent } from '../agents/ExecutiveAgents';
+import { CEOAgent, CTOAgent, CFOAgent, CMOAgent, CHROAgent, COOAgent } from '../agents/ExecutiveAgents';
 import { BoardAgentBase } from '../agents/BoardAgentBase';
 import { TopicStateManager } from '../agents/TopicStateManager';
 import { ArrowLeft, TrendingUp, DollarSign, Settings, Target, Users, Briefcase } from 'lucide-react';
@@ -21,7 +21,7 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
   const [stateManager] = useState<TopicStateManager>(new TopicStateManager());
   const [topicStates, setTopicStates] = useState<Map<string, TopicState>>(new Map());
 
-  // Initialize agents based on session configuration
+  // Initialize agents based on session configuration with pre-generated responses
   useEffect(() => {
     const initializedAgents: BoardAgentBase[] = [];
     
@@ -38,10 +38,34 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
         case 'CFO':
           agent = new CFOAgent(agentConfig, session.companyContext);
           break;
+        case 'CMO':
+          agent = new CMOAgent(agentConfig, session.companyContext);
+          break;
+        case 'CHRO':
+          agent = new CHROAgent(agentConfig, session.companyContext);
+          break;
+        case 'COO':
+          agent = new COOAgent(agentConfig, session.companyContext);
+          break;
         default:
           // For other roles, use CEO as base (can be extended later)
           agent = new CEOAgent(agentConfig, session.companyContext);
           break;
+      }
+      
+      // Set pre-generated responses if available
+      if (session.agentResponses && agent.setTopicResponses) {
+        const agentResponses = session.agentResponses.get(agentConfig.role);
+        if (agentResponses) {
+          // Set responses for the first topic initially
+          const firstTopic = session.topics[0];
+          if (firstTopic) {
+            const topicResponses = agentResponses.get(firstTopic.title);
+            if (topicResponses) {
+              agent.setTopicResponses(topicResponses);
+            }
+          }
+        }
       }
       
       initializedAgents.push(agent);
@@ -62,6 +86,26 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
     // Update local state with initial topic states
     setTopicStates(stateManager.getAllTopicStates());
   }, [session, stateManager]);
+
+  // Update agent responses when topic changes
+  useEffect(() => {
+    if (selectedTopic && session.agentResponses) {
+      const currentTopic = session.topics.find(t => t.id === selectedTopic);
+      if (currentTopic) {
+        agents.forEach(agent => {
+          if (agent.setTopicResponses) {
+            const agentResponses = session.agentResponses?.get(agent.getAgent().role);
+            if (agentResponses) {
+              const topicResponses = agentResponses.get(currentTopic.title);
+              if (topicResponses) {
+                agent.setTopicResponses(topicResponses);
+              }
+            }
+          }
+        });
+      }
+    }
+  }, [selectedTopic, session.agentResponses, agents]);
 
   const handleUserMessage = async (message: string) => {
     console.log('User message:', message);

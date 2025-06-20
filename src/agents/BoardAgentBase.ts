@@ -27,6 +27,9 @@ export abstract class BoardAgentBase {
     keywords?: string[]
   ): boolean;
 
+  // New method for setting pre-generated responses
+  abstract setTopicResponses?(responses: string[]): void;
+
   // Common methods available to all agents
   public setCurrentTopic(topic: Topic): void {
     this.currentTopic = topic;
@@ -92,7 +95,7 @@ export abstract class BoardAgentBase {
   }
 }
 
-// NOTE: This base class provides the foundation for our agentic system.
+// NOTE: This base class now supports pre-generated responses from LLM
 // TODO: Integrate with actual LLM API for more sophisticated response generation
 // TODO: Implement more advanced sentiment analysis and keyword extraction
 // TODO: Add memory management for long conversations

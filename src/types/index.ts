@@ -61,6 +61,8 @@ export interface BoardroomSession {
   currentTopicId?: string;
   status: 'setup' | 'active' | 'paused' | 'completed';
   createdAt: Date;
+  // Store pre-generated agent responses
+  agentResponses?: Map<string, Map<string, string[]>>;
 }
 
 // New types for enhanced topic state tracking

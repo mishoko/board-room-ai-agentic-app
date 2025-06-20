@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Users, Plus, X, Building, Target, FileText, ArrowRight } from 'lucide-react';
+import { Users, Plus, X, Building, Target, FileText, ArrowRight, Loader2 } from 'lucide-react';
 import { Agent, Topic, CompanyContext, BoardroomSession } from '../types';
+import { LLMService } from '../services/LLMService';
 
 interface SetupPageProps {
   onSessionStart: (session: BoardroomSession) => void;
@@ -21,6 +22,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const [currentStep, setCurrentStep] = useState<'agents' | 'topics' | 'context' | 'review'>('agents');
   const [newChallenge, setNewChallenge] = useState('');
   const [newGoal, setNewGoal] = useState('');
+  const [isGeneratingResponses, setIsGeneratingResponses] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState('');
 
   // Available agent templates
   const availableAgents: Omit<Agent, 'id' | 'isActive'>[] = [
@@ -136,17 +139,77 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     }
   };
 
-  const startSession = () => {
-    const session: BoardroomSession = {
-      id: `session-${Date.now()}`,
-      agents: selectedAgents,
-      topics,
-      companyContext,
-      timelines: [],
-      status: 'setup',
-      createdAt: new Date()
-    };
-    onSessionStart(session);
+  const startSession = async () => {
+    setIsGeneratingResponses(true);
+    setGenerationProgress('Initializing AI agents...');
+
+    try {
+      // Generate personalized responses for all agents and topics
+      const llmService = LLMService.getInstance();
+      
+      setGenerationProgress('Analyzing company context and topics...');
+      
+      const agentData = selectedAgents.map(agent => ({
+        role: agent.role,
+        persona: agent.persona,
+        expertise: agent.expertise
+      }));
+
+      const topicData = topics.map(topic => ({
+        title: topic.title,
+        description: topic.description,
+        priority: topic.priority
+      }));
+
+      setGenerationProgress('Generating personalized responses for each executive...');
+      
+      // Generate all responses
+      const agentResponsesMap = await llmService.generateAllAgentResponses(
+        agentData,
+        topicData,
+        companyContext
+      );
+
+      setGenerationProgress('Finalizing boardroom setup...');
+
+      // Create session with generated responses
+      const session: BoardroomSession = {
+        id: `session-${Date.now()}`,
+        agents: selectedAgents,
+        topics,
+        companyContext,
+        timelines: [],
+        status: 'setup',
+        createdAt: new Date(),
+        // Store generated responses in session for later use
+        agentResponses: agentResponsesMap
+      };
+
+      setGenerationProgress('Launching boardroom...');
+      
+      // Small delay for smooth transition
+      setTimeout(() => {
+        onSessionStart(session);
+      }, 500);
+
+    } catch (error) {
+      console.error('Error generating agent responses:', error);
+      setGenerationProgress('Error occurred. Using fallback responses...');
+      
+      // Fallback: create session without pre-generated responses
+      setTimeout(() => {
+        const session: BoardroomSession = {
+          id: `session-${Date.now()}`,
+          agents: selectedAgents,
+          topics,
+          companyContext,
+          timelines: [],
+          status: 'setup',
+          createdAt: new Date()
+        };
+        onSessionStart(session);
+      }, 1000);
+    }
   };
 
   const renderAgentSelection = () => (
@@ -538,6 +601,31 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     </div>
   );
 
+  // Loading overlay for response generation
+  if (isGeneratingResponses) {
+    return (
+      <div className="min-h-screen bg-slate-900 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
+        
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-6 mx-auto">
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Preparing Your AI Boardroom</h2>
+            <p className="text-slate-300 mb-4">{generationProgress}</p>
+            <div className="w-64 h-2 bg-slate-700 rounded-full overflow-hidden mx-auto">
+              <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-pulse"></div>
+            </div>
+            <p className="text-sm text-slate-400 mt-4">
+              Generating personalized responses for {selectedAgents.length} executives across {topics.length} topics...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 relative overflow-hidden">
       {/* Background */}
@@ -630,10 +718,20 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
             {currentStep === 'review' ? (
               <button
                 onClick={startSession}
-                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2"
+                disabled={isGeneratingResponses}
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Start Boardroom Session
-                <ArrowRight className="w-4 h-4" />
+                {isGeneratingResponses ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    Start Boardroom Session
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             ) : (
               <button
