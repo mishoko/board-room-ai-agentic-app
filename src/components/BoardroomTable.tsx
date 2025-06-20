@@ -30,6 +30,8 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   const [isInterrupted, setIsInterrupted] = useState(false);
   const [conversationContext, setConversationContext] = useState<Message[]>([]);
   const [activeTimeouts, setActiveTimeouts] = useState<{[key: string]: NodeJS.Timeout}>({});
+  const [isHoveringBubble, setIsHoveringBubble] = useState(false);
+  const [pausedByHover, setPausedByHover] = useState(false);
 
   // Enhanced calculation for message display duration based on text complexity
   const calculateMessageDuration = (message: string): number => {
@@ -69,6 +71,54 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       ✅ Final duration: ${(duration/1000).toFixed(1)}s`);
     
     return duration;
+  };
+
+  // Handle bubble hover events
+  const handleBubbleHover = (isHovering: boolean) => {
+    setIsHoveringBubble(isHovering);
+    
+    if (isHovering) {
+      // Pause all active timeouts when hovering
+      setPausedByHover(true);
+      Object.values(activeTimeouts).forEach(timeout => clearTimeout(timeout));
+      console.log('🖱️ Bubble hovered - pausing conversation timers');
+    } else {
+      // Resume timeouts when not hovering (unless manually paused)
+      setPausedByHover(false);
+      if (!isPaused && !isInterrupting) {
+        console.log('🖱️ Bubble unhovered - resuming conversation timers');
+        // Restart timers for active messages
+        Object.entries(currentMessages).forEach(([agentRole, message]) => {
+          if (message && activeMembers.includes(agentRole)) {
+            const duration = calculateMessageDuration(message);
+            const timeoutId = setTimeout(() => {
+              console.log(`⏰ Clearing message for ${agentRole} after hover resume`);
+              setActiveMembers(prev => prev.filter(member => member !== agentRole));
+              setCurrentMessages(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+              setMessageDurations(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+              setActiveTimeouts(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+            }, duration);
+            
+            setActiveTimeouts(prev => ({
+              ...prev,
+              [agentRole]: timeoutId
+            }));
+          }
+        });
+      }
+    }
   };
 
   // Get position for agents distributed around the table (supports up to 8 positions)
@@ -142,14 +192,18 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     }
   }, [currentTopic?.id, stateManager, onTopicStateChange]);
 
-  // Enhanced conversation system with proper timeout management
+  // Enhanced conversation system with proper timeout management and hover/pause controls
   useEffect(() => {
-    if (isPaused || isInterrupting || agents.length === 0 || !currentTopic || !stateManager) return;
+    // Don't start new conversations if paused, interrupting, hovering, or no agents
+    if (isPaused || isInterrupting || pausedByHover || isHoveringBubble || agents.length === 0 || !currentTopic || !stateManager) return;
     
     const currentState = stateManager.getTopicState(currentTopic.id);
     if (!currentState || currentState.status === 'completed') return;
 
     const interval = setInterval(async () => {
+      // Check if we should still proceed (not paused by hover or manual pause)
+      if (isPaused || isInterrupting || pausedByHover || isHoveringBubble) return;
+      
       const latestState = stateManager.getTopicState(currentTopic.id);
       if (!latestState || latestState.status === 'completed') {
         setActiveMembers([]);
@@ -209,32 +263,34 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
           setTopicState(updatedState);
           randomAgent.addToHistory(message);
           
-          // Set timeout to clear the message with proper duration
-          const timeoutId = setTimeout(() => {
-            console.log(`⏰ Clearing message for ${agentRole} after ${(duration/1000).toFixed(1)}s`);
-            setActiveMembers(prev => prev.filter(member => member !== agentRole));
-            setCurrentMessages(prev => {
-              const updated = { ...prev };
-              delete updated[agentRole];
-              return updated;
-            });
-            setMessageDurations(prev => {
-              const updated = { ...prev };
-              delete updated[agentRole];
-              return updated;
-            });
-            setActiveTimeouts(prev => {
-              const updated = { ...prev };
-              delete updated[agentRole];
-              return updated;
-            });
-          }, duration);
-          
-          // Store the timeout ID
-          setActiveTimeouts(prev => ({
-            ...prev,
-            [agentRole]: timeoutId
-          }));
+          // Set timeout to clear the message with proper duration (only if not paused/hovering)
+          if (!isPaused && !isInterrupting && !pausedByHover && !isHoveringBubble) {
+            const timeoutId = setTimeout(() => {
+              console.log(`⏰ Clearing message for ${agentRole} after ${(duration/1000).toFixed(1)}s`);
+              setActiveMembers(prev => prev.filter(member => member !== agentRole));
+              setCurrentMessages(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+              setMessageDurations(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+              setActiveTimeouts(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+            }, duration);
+            
+            // Store the timeout ID
+            setActiveTimeouts(prev => ({
+              ...prev,
+              [agentRole]: timeoutId
+            }));
+          }
           
         } catch (error) {
           console.error('Error generating agent response:', error);
@@ -243,15 +299,51 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     }, 5000); // Increased interval to 5 seconds for better pacing
 
     return () => clearInterval(interval);
-  }, [isPaused, isInterrupting, agents, currentTopic, stateManager, isInterrupted, activeTimeouts]);
+  }, [isPaused, isInterrupting, pausedByHover, isHoveringBubble, agents, currentTopic, stateManager, isInterrupted, activeTimeouts]);
 
   const handlePauseToggle = () => {
-    setIsPaused(!isPaused);
-    if (!isPaused) {
-      setActiveMembers([]);
-      // Clear all active timeouts when pausing
+    const newPausedState = !isPaused;
+    setIsPaused(newPausedState);
+    
+    if (newPausedState) {
+      // When pausing, clear all timeouts but keep messages visible
       Object.values(activeTimeouts).forEach(timeout => clearTimeout(timeout));
       setActiveTimeouts({});
+      console.log('⏸️ Conversation paused - messages will remain visible');
+    } else {
+      // When resuming, restart timers for active messages (if not hovering)
+      if (!isHoveringBubble && !pausedByHover) {
+        console.log('▶️ Conversation resumed - restarting message timers');
+        Object.entries(currentMessages).forEach(([agentRole, message]) => {
+          if (message && activeMembers.includes(agentRole)) {
+            const duration = calculateMessageDuration(message);
+            const timeoutId = setTimeout(() => {
+              console.log(`⏰ Clearing message for ${agentRole} after resume`);
+              setActiveMembers(prev => prev.filter(member => member !== agentRole));
+              setCurrentMessages(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+              setMessageDurations(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+              setActiveTimeouts(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+            }, duration);
+            
+            setActiveTimeouts(prev => ({
+              ...prev,
+              [agentRole]: timeoutId
+            }));
+          }
+        });
+      }
     }
   };
 
@@ -324,17 +416,24 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
 
   return (
     <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-3xl p-8 backdrop-blur-sm border border-slate-700/50 shadow-2xl">
-      {/* Status Indicator */}
-      {(isPaused || isInterrupting) && (
+      {/* Enhanced Status Indicators */}
+      {(isPaused || isInterrupting || isHoveringBubble) && (
         <div className="absolute top-4 right-4 z-20">
           <div className={`
             px-3 py-1 rounded-full text-xs font-medium
-            ${isPaused && !isInterrupting 
-              ? 'bg-amber-500/30 text-amber-200' 
-              : 'bg-blue-500/30 text-blue-200'
+            ${isHoveringBubble
+              ? 'bg-purple-500/30 text-purple-200'
+              : isPaused && !isInterrupting 
+                ? 'bg-amber-500/30 text-amber-200' 
+                : 'bg-blue-500/30 text-blue-200'
             }
           `}>
-            {isInterrupting ? 'Waiting for your input...' : 'Conversation paused'}
+            {isHoveringBubble 
+              ? 'Reading paused - hover to continue reading' 
+              : isInterrupting 
+                ? 'Waiting for your input...' 
+                : 'Conversation paused - messages visible'
+            }
           </div>
         </div>
       )}
@@ -397,18 +496,19 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
           </div>
         </div>
 
-        {/* Board Members with Dynamic Positioning */}
+        {/* Board Members with Enhanced Hover Controls */}
         {agents.map((agent, index) => (
           <BoardMember
             key={agent.getAgent().id}
             name={agent.getAgent().role}
             position={getAgentPosition(index, agents.length)}
             message={currentMessages[agent.getAgent().role] || ''}
-            isActive={activeMembers.includes(agent.getAgent().role) && !isPaused && !isInterrupting && !isTopicCompleted}
+            isActive={activeMembers.includes(agent.getAgent().role) && !isTopicCompleted}
+            onBubbleHover={handleBubbleHover}
           />
         ))}
 
-        {/* Control Panel - Bottom Right */}
+        {/* Enhanced Control Panel */}
         <div className="absolute bottom-4 right-4 flex items-center gap-2 z-20">
           <button
             onClick={handlePauseToggle}

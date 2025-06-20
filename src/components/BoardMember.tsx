@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from 'lucide-react';
 
 interface BoardMemberProps {
@@ -6,9 +6,22 @@ interface BoardMemberProps {
   position: 'top-left' | 'top-center' | 'top-right' | 'middle-left' | 'middle-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
   message: string;
   isActive: boolean;
+  onBubbleHover?: (isHovering: boolean) => void;
 }
 
-const BoardMember: React.FC<BoardMemberProps> = ({ name, position, message, isActive }) => {
+const BoardMember: React.FC<BoardMemberProps> = ({ name, position, message, isActive, onBubbleHover }) => {
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+    onBubbleHover?.(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    onBubbleHover?.(false);
+  };
+
   const getPositionClasses = () => {
     switch (position) {
       case 'top-left':
@@ -90,15 +103,26 @@ const BoardMember: React.FC<BoardMemberProps> = ({ name, position, message, isAc
         </div>
       </div>
 
-      {/* Speech Bubble */}
+      {/* Speech Bubble with Hover Controls */}
       {isActive && message && (
         <div className={getBubblePosition()}>
-          <div className="bg-white rounded-lg shadow-xl p-4 relative animate-fadeIn">
+          <div 
+            className={`bg-white rounded-lg shadow-xl p-4 relative animate-fadeIn cursor-pointer transition-all duration-200 ${
+              isHovering ? 'ring-2 ring-blue-400 shadow-2xl scale-105' : ''
+            }`}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
             <div className="text-sm text-gray-800 leading-relaxed">
               {message}
             </div>
             {/* Dynamic bubble pointer based on position */}
             <div className={getBubblePointer()}></div>
+            
+            {/* Hover indicator */}
+            {isHovering && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+            )}
           </div>
         </div>
       )}
