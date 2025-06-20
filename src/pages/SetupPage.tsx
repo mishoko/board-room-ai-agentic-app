@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Plus, X, Building, Target, FileText, ArrowRight, Loader2 } from 'lucide-react';
+import { Users, Plus, X, Building, Target, FileText, ArrowRight, Loader2, Info } from 'lucide-react';
 import { Agent, Topic, CompanyContext, BoardroomSession } from '../types';
 import { LLMService } from '../services/LLMService';
 
@@ -23,6 +23,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const [newChallenge, setNewChallenge] = useState('');
   const [newGoal, setNewGoal] = useState('');
   const [isGeneratingResponses, setIsGeneratingResponses] = useState(false);
+  const [hoveredExpertise, setHoveredExpertise] = useState<{agentRole: string, expertise: string[]} | null>(null);
 
   // Original creative executive templates with the Chief Vibe Coding Officer and others
   const availableAgents: Omit<Agent, 'id' | 'isActive'>[] = [
@@ -279,18 +280,20 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         <p className="text-sm text-slate-400 mt-1">Selected: {selectedAgents.length}/10 • Each executive brings deep domain expertise and critical thinking</p>
       </div>
 
-      {/* Updated grid to show all cards properly */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {/* Compact grid layout for smaller cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
         {availableAgents.map((agent) => {
           const isSelected = selectedAgents.some(selected => selected.role === agent.role);
           const canSelect = selectedAgents.length < 10 || isSelected;
+          const displayedExpertise = agent.expertise.slice(0, 3);
+          const remainingCount = agent.expertise.length - 3;
 
           return (
             <div
               key={agent.role}
               onClick={() => canSelect && toggleAgent(agent)}
               className={`
-                p-6 rounded-xl border-2 cursor-pointer transition-all duration-200 h-full
+                relative p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 h-full
                 ${isSelected 
                   ? 'border-blue-500 bg-blue-500/20 shadow-lg shadow-blue-500/25' 
                   : canSelect
@@ -299,22 +302,52 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                 }
               `}
             >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-white text-lg">{agent.role}</h3>
-                {isSelected && <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>}
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-white text-sm">{agent.role}</h3>
+                {isSelected && <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>}
               </div>
-              <p className="text-sm text-slate-300 mb-3 font-medium">{agent.name}</p>
-              <p className="text-xs text-slate-400 mb-4 leading-relaxed">{agent.persona}</p>
+              
+              <p className="text-xs text-slate-300 mb-2 font-medium">{agent.name}</p>
+              <p className="text-xs text-slate-400 mb-3 leading-relaxed line-clamp-2">{agent.persona}</p>
+              
               <div className="space-y-2">
                 <p className="text-xs font-medium text-slate-300">Core Expertise:</p>
                 <div className="flex flex-wrap gap-1">
-                  {agent.expertise.slice(0, 4).map((skill) => (
+                  {displayedExpertise.map((skill) => (
                     <span key={skill} className="text-xs bg-slate-700/70 text-slate-300 px-2 py-1 rounded-md">
                       {skill}
                     </span>
                   ))}
-                  {agent.expertise.length > 4 && (
-                    <span className="text-xs text-slate-400">+{agent.expertise.length - 4} more</span>
+                  {remainingCount > 0 && (
+                    <div className="relative">
+                      <span 
+                        className="text-xs bg-slate-600/70 text-slate-300 px-2 py-1 rounded-md cursor-help hover:bg-slate-600 transition-colors"
+                        onMouseEnter={() => setHoveredExpertise({agentRole: agent.role, expertise: agent.expertise})}
+                        onMouseLeave={() => setHoveredExpertise(null)}
+                      >
+                        +{remainingCount} more
+                      </span>
+                      
+                      {/* Expertise Popover */}
+                      {hoveredExpertise?.agentRole === agent.role && (
+                        <div className="absolute bottom-full left-0 mb-2 z-50 w-64 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Info className="w-3 h-3 text-blue-400" />
+                            <span className="text-xs font-medium text-slate-200">All Expertise Areas</span>
+                          </div>
+                          <div className="space-y-1">
+                            {hoveredExpertise.expertise.map((skill, index) => (
+                              <div key={index} className="flex items-start gap-2">
+                                <div className="w-1 h-1 bg-blue-400 rounded-full mt-1.5 flex-shrink-0"></div>
+                                <span className="text-xs text-slate-300 leading-relaxed">{skill}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {/* Popover arrow */}
+                          <div className="absolute top-full left-4 w-2 h-2 bg-slate-800 border-r border-b border-slate-600 transform rotate-45"></div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
