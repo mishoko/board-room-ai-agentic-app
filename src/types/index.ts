@@ -62,3 +62,38 @@ export interface BoardroomSession {
   status: 'setup' | 'active' | 'paused' | 'completed';
   createdAt: Date;
 }
+
+// New types for enhanced topic state tracking
+export interface TopicState {
+  topicId: string;
+  status: 'pending' | 'active' | 'completed';
+  messageCount: number;
+  participantCount: number;
+  startTime: Date | null;
+  endTime: Date | null;
+  estimatedDuration: number;
+  actualDuration: number;
+  completionPercentage: number;
+  keyMetrics: {
+    totalMessages: number;
+    agentMessages: number;
+    userMessages: number;
+    averageMessageLength: number;
+    topicRelevanceScore: number;
+  };
+}
+
+export interface TopicSummary {
+  id: string;
+  title: string;
+  content: string;
+  keyPoints: string[];
+  icon: React.ReactNode;
+  isCompleted: boolean;
+  metrics?: {
+    duration: number;
+    messageCount: number;
+    participantCount: number;
+    relevanceScore: number;
+  };
+}

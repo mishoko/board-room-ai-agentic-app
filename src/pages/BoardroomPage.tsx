@@ -3,9 +3,10 @@ import AnimatedBackground from '../components/AnimatedBackground';
 import BoardroomTable from '../components/BoardroomTable';
 import Timeline from '../components/Timeline';
 import SummaryPanel from '../components/SummaryPanel';
-import { BoardroomSession, Message, Timeline as TimelineType, Topic } from '../types';
+import { BoardroomSession, Message, Timeline as TimelineType, Topic, TopicState, TopicSummary } from '../types';
 import { CEOAgent, CTOAgent, CFOAgent } from '../agents/ExecutiveAgents';
 import { BoardAgentBase } from '../agents/BoardAgentBase';
+import { TopicStateManager } from '../agents/TopicStateManager';
 import { ArrowLeft, TrendingUp, DollarSign, Settings, Target, Users, Briefcase } from 'lucide-react';
 
 interface BoardroomPageProps {
@@ -17,8 +18,8 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
   const [currentSession, setCurrentSession] = useState<BoardroomSession>(session);
   const [agents, setAgents] = useState<BoardAgentBase[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
-  const [topicMessages, setTopicMessages] = useState<{[key: string]: Message[]}>({});
-  const [completedTopics, setCompletedTopics] = useState<Set<string>>(new Set());
+  const [stateManager] = useState<TopicStateManager>(new TopicStateManager());
+  const [topicStates, setTopicStates] = useState<Map<string, TopicState>>(new Map());
 
   // Initialize agents based on session configuration
   useEffect(() => {
@@ -48,104 +49,120 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
     
     setAgents(initializedAgents);
     
+    // Initialize all topics in state manager
+    session.topics.forEach(topic => {
+      stateManager.initializeTopic(topic);
+    });
+    
     // Set first topic as selected by default
     if (session.topics.length > 0) {
       setSelectedTopic(session.topics[0].id);
     }
-  }, [session]);
+    
+    // Update local state with initial topic states
+    setTopicStates(stateManager.getAllTopicStates());
+  }, [session, stateManager]);
 
   const handleUserMessage = async (message: string) => {
     console.log('User message:', message);
-    // User messages are now handled directly in BoardroomTable
+    // User messages are now handled directly in BoardroomTable through state manager
   };
 
-  const handleTopicComplete = (topicId: string, messages: Message[]) => {
-    console.log(`Topic ${topicId} completed with ${messages.length} messages`);
+  const handleTopicStateChange = (topicId: string, state: TopicState) => {
+    console.log(`Topic ${topicId} state changed:`, state);
     
-    // Store messages for this topic
-    setTopicMessages(prev => ({
-      ...prev,
-      [topicId]: messages
-    }));
+    // Update local topic states
+    setTopicStates(prev => new Map(prev.set(topicId, state)));
     
-    // Mark topic as completed
-    setCompletedTopics(prev => new Set([...prev, topicId]));
-    
-    // Update session topics
-    setCurrentSession(prev => ({
-      ...prev,
-      topics: prev.topics.map(topic => 
-        topic.id === topicId 
-          ? { ...topic, status: 'completed' as const }
-          : topic
-      )
-    }));
-    
-    // Auto-select next incomplete topic
-    const currentTopicIndex = currentSession.topics.findIndex(t => t.id === topicId);
-    const nextTopic = currentSession.topics.find((topic, index) => 
-      index > currentTopicIndex && !completedTopics.has(topic.id)
-    );
-    
-    if (nextTopic) {
-      setTimeout(() => {
-        setSelectedTopic(nextTopic.id);
-      }, 2000); // 2 second delay before moving to next topic
+    // Update session topics if completed
+    if (state.status === 'completed') {
+      setCurrentSession(prev => ({
+        ...prev,
+        topics: prev.topics.map(topic => 
+          topic.id === topicId 
+            ? { ...topic, status: 'completed' as const }
+            : topic
+        )
+      }));
+      
+      // Auto-select next incomplete topic
+      const currentTopicIndex = currentSession.topics.findIndex(t => t.id === topicId);
+      const nextTopic = currentSession.topics.find((topic, index) => 
+        index > currentTopicIndex && !stateManager.isTopicCompleted(topic.id)
+      );
+      
+      if (nextTopic) {
+        setTimeout(() => {
+          setSelectedTopic(nextTopic.id);
+        }, 2000); // 2 second delay before moving to next topic
+      }
     }
   };
 
-  // Generate summaries based on actual conversation messages
-  const generateSummaries = () => {
-    const summaries: { [key: string]: any } = {};
+  // Generate summaries based on actual conversation data from state manager
+  const generateSummaries = (): { [key: string]: TopicSummary } => {
+    const summaries: { [key: string]: TopicSummary } = {};
     
     currentSession.topics.forEach(topic => {
-      const messages = topicMessages[topic.id] || [];
-      const isCompleted = completedTopics.has(topic.id);
+      const state = topicStates.get(topic.id);
+      const messages = stateManager.getTopicMessages(topic.id);
+      const isCompleted = stateManager.isTopicCompleted(topic.id);
       
-      if (isCompleted && messages.length > 0) {
-        // Generate summary from actual conversation
+      if (isCompleted && messages.length > 0 && state) {
+        // Generate detailed summary from actual conversation
         const agentMessages = messages.filter(msg => msg.agentId !== 'user');
         const userMessages = messages.filter(msg => msg.agentId === 'user');
+        const participants = new Set(messages.map(msg => msg.agentId));
         
         const keyPoints = [
-          `Discussion involved ${new Set(agentMessages.map(msg => {
-            const agent = agents.find(a => a.getAgent().id === msg.agentId);
-            return agent?.getAgent().role || 'Unknown';
-          })).size} board members`,
+          `${participants.size} participants engaged in discussion`,
           `${agentMessages.length} executive insights shared`,
           userMessages.length > 0 ? `${userMessages.length} stakeholder input(s) received` : 'No additional stakeholder input',
-          `Completed in approximately ${Math.ceil(messages.length * 0.5)} minutes`
+          `Discussion completed in ${state.actualDuration} minutes`,
+          `Topic relevance score: ${state.keyMetrics.topicRelevanceScore}%`
         ];
         
-        // Extract key themes from messages (simple keyword analysis)
+        // Extract key themes from messages (enhanced analysis)
         const allText = messages.map(msg => msg.text).join(' ').toLowerCase();
         const themes = [];
         if (allText.includes('strategy') || allText.includes('strategic')) themes.push('Strategic planning discussed');
         if (allText.includes('risk') || allText.includes('challenge')) themes.push('Risk assessment conducted');
         if (allText.includes('budget') || allText.includes('cost') || allText.includes('financial')) themes.push('Financial implications reviewed');
         if (allText.includes('technology') || allText.includes('technical')) themes.push('Technical considerations evaluated');
+        if (allText.includes('market') || allText.includes('competition')) themes.push('Market analysis performed');
+        if (allText.includes('team') || allText.includes('hiring') || allText.includes('resource')) themes.push('Resource planning addressed');
         
-        keyPoints.push(...themes);
+        keyPoints.push(...themes.slice(0, 3)); // Add up to 3 themes
         
         summaries[topic.id] = {
           id: topic.id,
           title: topic.title,
-          content: `The board completed a comprehensive discussion on ${topic.title.toLowerCase()}. The conversation involved ${agentMessages.length} executive contributions and covered key aspects relevant to ${currentSession.companyContext.name}'s ${currentSession.companyContext.stage} stage in the ${currentSession.companyContext.industry} industry. The discussion addressed strategic, operational, and risk considerations.`,
-          keyPoints: keyPoints.slice(0, 6), // Limit to 6 key points
-          icon: getTopicIcon(topic.title)
+          content: `The board completed a comprehensive discussion on ${topic.title.toLowerCase()}. The conversation involved ${agentMessages.length} executive contributions from ${participants.size - (userMessages.length > 0 ? 1 : 0)} board members${userMessages.length > 0 ? ' plus stakeholder input' : ''}. The discussion addressed key aspects relevant to ${currentSession.companyContext.name}'s ${currentSession.companyContext.stage} stage in the ${currentSession.companyContext.industry} industry, with a focus on strategic, operational, and risk considerations. The topic achieved a ${state.keyMetrics.topicRelevanceScore}% relevance score based on content analysis.`,
+          keyPoints: keyPoints.slice(0, 8), // Limit to 8 key points
+          icon: getTopicIcon(topic.title),
+          isCompleted: true,
+          metrics: {
+            duration: state.actualDuration,
+            messageCount: state.messageCount,
+            participantCount: state.participantCount,
+            relevanceScore: state.keyMetrics.topicRelevanceScore
+          }
         };
       } else {
-        // Placeholder for incomplete topics
+        // Placeholder for incomplete topics - no content until completed
         summaries[topic.id] = {
           id: topic.id,
           title: topic.title,
-          content: isCompleted 
-            ? `Discussion on ${topic.title.toLowerCase()} has been completed but no detailed conversation was recorded.`
-            : `Discussion on ${topic.title.toLowerCase()} is pending or in progress.`,
-          keyPoints: isCompleted 
-            ? ['Discussion completed', 'Summary will be available once conversation data is processed']
-            : ['Discussion not yet started', 'Select this topic to begin the conversation'],
-          icon: getTopicIcon(topic.title)
+          content: '', // Empty content for incomplete topics
+          keyPoints: [], // Empty key points for incomplete topics
+          icon: getTopicIcon(topic.title),
+          isCompleted: false,
+          metrics: state ? {
+            duration: 0,
+            messageCount: state.messageCount,
+            participantCount: state.participantCount,
+            relevanceScore: state.keyMetrics.topicRelevanceScore
+          } : undefined
         };
       }
     });
@@ -168,18 +185,27 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
     }
   };
 
-  // Convert session topics to timeline format with proper status
-  const timelineTopics = currentSession.topics.map(topic => ({
-    id: topic.id,
-    title: topic.title,
-    status: completedTopics.has(topic.id) ? 'closed' as const : 'open' as const,
-    timestamp: completedTopics.has(topic.id) 
-      ? `Completed • ${topicMessages[topic.id]?.length || 0} messages`
-      : `${topic.estimatedDuration} min discussion`
-  }));
+  // Convert session topics to timeline format with individual state tracking
+  const timelineTopics = currentSession.topics.map(topic => {
+    const state = topicStates.get(topic.id);
+    const isCompleted = stateManager.isTopicCompleted(topic.id);
+    const messageCount = state?.messageCount || 0;
+    
+    return {
+      id: topic.id,
+      title: topic.title,
+      status: isCompleted ? 'closed' as const : 'open' as const,
+      timestamp: isCompleted 
+        ? `Completed • ${messageCount} messages • ${state?.actualDuration || 0}min`
+        : state?.status === 'active'
+          ? `Active • ${messageCount} messages • ${state?.completionPercentage || 0}%`
+          : `${topic.estimatedDuration} min discussion`
+    };
+  });
 
   const summaries = generateSummaries();
   const currentTopicData = selectedTopic ? currentSession.topics.find(t => t.id === selectedTopic) : undefined;
+  const progressReport = stateManager.getProgressReport();
 
   return (
     <div className="min-h-screen bg-slate-900 relative overflow-hidden">
@@ -203,8 +229,19 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
               {session.companyContext.name} Boardroom
             </h1>
             <p className="text-slate-300">
-              {session.companyContext.industry} • {session.agents.length} executives • {completedTopics.size}/{session.topics.length} topics completed
+              {session.companyContext.industry} • {session.agents.length} executives • {progressReport.completedTopics}/{progressReport.totalTopics} topics completed
             </p>
+            {progressReport.totalTopics > 0 && (
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <div className="w-32 h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-1000"
+                    style={{ width: `${progressReport.overallProgress}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm text-slate-400">{progressReport.overallProgress}%</span>
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-lg">
@@ -220,9 +257,10 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
             <div className="w-full max-w-4xl">
               <BoardroomTable 
                 onUserMessage={handleUserMessage}
-                onTopicComplete={handleTopicComplete}
+                onTopicStateChange={handleTopicStateChange}
                 agents={agents}
                 currentTopic={currentTopicData}
+                stateManager={stateManager}
               />
             </div>
           </div>
