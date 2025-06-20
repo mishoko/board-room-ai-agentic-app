@@ -24,7 +24,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const [newGoal, setNewGoal] = useState('');
   const [isGeneratingResponses, setIsGeneratingResponses] = useState(false);
 
-  // Enhanced agent templates with deeper expertise - ALL 6 EXECUTIVES
+  // Complete set of 12 executive templates with deep expertise
   const availableAgents: Omit<Agent, 'id' | 'isActive'>[] = [
     {
       role: 'CEO',
@@ -67,6 +67,48 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
       persona: 'Operations excellence leader with expertise in scaling processes, supply chain optimization, and cross-functional execution',
       experience: '14+ years in operations leadership across multiple industries and business models',
       expertise: ['Operations Strategy & Execution', 'Process Optimization & Automation', 'Supply Chain Management', 'Quality Assurance & Six Sigma', 'Project Management & PMO', 'Vendor Management & Procurement', 'Business Continuity Planning', 'Operational Risk Management']
+    },
+    {
+      role: 'CPO',
+      name: 'Chief Product Officer',
+      persona: 'Product visionary with deep expertise in user experience, product strategy, and data-driven product development',
+      experience: '10+ years in product leadership at technology companies',
+      expertise: ['Product Strategy & Roadmapping', 'User Experience Design', 'Product Analytics & Data Science', 'Agile Development Methodologies', 'Market Research & Validation', 'Product-Market Fit', 'Growth Product Management', 'Platform Strategy']
+    },
+    {
+      role: 'CRO',
+      name: 'Chief Revenue Officer',
+      persona: 'Revenue growth expert with proven track record in sales strategy, customer success, and revenue operations',
+      experience: '12+ years in revenue leadership across SaaS and enterprise sales',
+      expertise: ['Sales Strategy & Execution', 'Revenue Operations & Analytics', 'Customer Success & Retention', 'Sales Team Development', 'Channel Partner Management', 'Pricing Strategy', 'Sales Technology & CRM', 'Revenue Forecasting']
+    },
+    {
+      role: 'CISO',
+      name: 'Chief Information Security Officer',
+      persona: 'Cybersecurity expert with extensive experience in enterprise security, compliance, and risk management',
+      experience: '10+ years in cybersecurity leadership across regulated industries',
+      expertise: ['Cybersecurity Strategy', 'Risk Assessment & Management', 'Compliance & Governance', 'Incident Response & Recovery', 'Security Architecture', 'Identity & Access Management', 'Security Awareness Training', 'Vendor Security Assessment']
+    },
+    {
+      role: 'CLO',
+      name: 'Chief Legal Officer',
+      persona: 'Legal strategist with expertise in corporate law, regulatory compliance, and business risk management',
+      experience: '12+ years in legal leadership including corporate counsel and private practice',
+      expertise: ['Corporate Governance', 'Regulatory Compliance', 'Contract Negotiation', 'Intellectual Property', 'Employment Law', 'M&A Legal Strategy', 'Litigation Management', 'Privacy & Data Protection']
+    },
+    {
+      role: 'CDO',
+      name: 'Chief Data Officer',
+      persona: 'Data strategy leader with expertise in analytics, data governance, and AI-driven business transformation',
+      experience: '8+ years in data leadership across analytics and business intelligence',
+      expertise: ['Data Strategy & Governance', 'Business Intelligence & Analytics', 'Machine Learning & AI', 'Data Architecture & Engineering', 'Data Privacy & Ethics', 'Advanced Analytics', 'Data Monetization', 'Predictive Modeling']
+    },
+    {
+      role: 'CSO',
+      name: 'Chief Strategy Officer',
+      persona: 'Strategic planning expert with deep experience in corporate strategy, market analysis, and business transformation',
+      experience: '10+ years in strategy consulting and corporate strategy roles',
+      expertise: ['Corporate Strategy Development', 'Market Analysis & Intelligence', 'Business Model Innovation', 'Strategic Planning & Execution', 'Competitive Analysis', 'Portfolio Management', 'Strategic Partnerships', 'Digital Transformation Strategy']
     }
   ];
 
@@ -176,7 +218,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         // Store generated responses in session for later use
         agentResponses: agentResponsesMap
       };
-
+      
       // Small delay for smooth transition
       setTimeout(() => {
         onSessionStart(session);
@@ -209,8 +251,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         <p className="text-sm text-slate-400 mt-1">Selected: {selectedAgents.length}/10 • Each executive brings deep domain expertise and critical thinking</p>
       </div>
 
-      {/* Updated grid to ensure all 6 cards are visible */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {/* Updated grid to show all 12 cards properly */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {availableAgents.map((agent) => {
           const isSelected = selectedAgents.some(selected => selected.role === agent.role);
           const canSelect = selectedAgents.length < 10 || isSelected;
