@@ -51,36 +51,20 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ selectedTopicId, summaries 
           {/* Summary content - only show for completed topics */}
           {currentSummary.isCompleted ? (
             <>
-              {/* Meeting Meta (formerly Key Points Discussed) */}
-              <div>
-                <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
-                  <Target className="w-4 h-4 text-blue-400" />
-                  Meeting Meta
-                </h4>
-                <ul className="space-y-2">
-                  {currentSummary.keyPoints.map((point, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                      <span className="text-sm text-slate-300">{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Conversation Summary */}
+              {/* Executive Summary - The main AI-generated summary */}
               <div>
                 <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-purple-400" />
-                  Conversation Summary
+                  Executive Summary
                 </h4>
-                <div className="prose prose-sm max-w-none">
+                <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/50">
                   <p className="text-slate-300 leading-relaxed text-sm">
                     {currentSummary.content}
                   </p>
                 </div>
               </div>
 
-              {/* Outcome Section */}
+              {/* Discussion Outcome */}
               {currentSummary.outcome && (
                 <div>
                   <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
@@ -143,6 +127,24 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ selectedTopicId, summaries 
                       <li key={index} className="flex items-start gap-2">
                         <ArrowRight className="w-3 h-3 text-purple-400 mt-1 flex-shrink-0" />
                         <span className="text-sm text-slate-300">{step}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Meeting Metrics */}
+              {currentSummary.keyPoints && currentSummary.keyPoints.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-blue-400" />
+                    Meeting Metrics
+                  </h4>
+                  <ul className="space-y-2">
+                    {currentSummary.keyPoints.map((point, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                        <span className="text-sm text-slate-300">{point}</span>
                       </li>
                     ))}
                   </ul>
