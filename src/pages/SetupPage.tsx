@@ -24,10 +24,10 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const [newGoal, setNewGoal] = useState('');
   const [isGeneratingResponses, setIsGeneratingResponses] = useState(false);
   const [generationProgress, setGenerationProgress] = useState('');
-  const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
+  const [expertisePopover, setExpertisePopover] = useState<string | null>(null);
 
-  // Enhanced agent templates with deeper expertise
+  // Enhanced agent templates with deeper expertise - reordered with new roles at top
   const availableAgents: Omit<Agent, 'id' | 'isActive'>[] = [
     {
       role: 'CEO',
@@ -35,6 +35,20 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
       persona: 'Visionary strategic leader with 15+ years of C-suite experience, known for challenging assumptions and driving transformational growth',
       experience: '15+ years in executive leadership across multiple industries',
       expertise: ['Strategic Planning & Execution', 'Market Analysis & Competitive Intelligence', 'Stakeholder Management', 'M&A Strategy', 'Board Relations', 'Crisis Management', 'Organizational Transformation', 'Capital Markets', 'Vision & Culture Development', 'Risk Assessment & Mitigation']
+    },
+    {
+      role: 'CVCO',
+      name: 'Chief Vibe & Coding Officer',
+      persona: 'Innovative tech-culture hybrid leader who bridges engineering excellence with organizational energy, fostering creative problem-solving and team synergy',
+      experience: '12+ years combining technical leadership with culture development in high-growth tech environments',
+      expertise: ['Full-Stack Development & Architecture', 'Developer Experience & Productivity', 'Technical Culture & Team Dynamics', 'Code Quality & Best Practices', 'Innovation Labs & Hackathons', 'Technical Mentoring & Growth', 'Agile & DevOps Culture', 'Open Source Strategy', 'Technical Recruiting & Retention', 'Cross-Functional Collaboration']
+    },
+    {
+      role: 'CAU',
+      name: 'Chief Automation Officer',
+      persona: 'Automation visionary focused on intelligent process optimization, AI-driven workflows, and systematic elimination of manual inefficiencies',
+      experience: '10+ years in automation strategy, RPA implementation, and AI-powered business transformation',
+      expertise: ['Robotic Process Automation (RPA)', 'AI & Machine Learning Integration', 'Workflow Optimization & Design', 'Business Process Reengineering', 'Intelligent Document Processing', 'Automation ROI & Metrics', 'Change Management for Automation', 'Vendor Selection & Integration', 'Compliance & Governance Automation', 'Hyperautomation Strategy']
     },
     {
       role: 'CTO',
@@ -247,7 +261,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white mb-2">Select Executive Board Members</h2>
         <p className="text-slate-300">Choose 2-10 C-level executives for sophisticated boardroom discussions</p>
-        <p className="text-sm text-slate-400 mt-1">Selected: {selectedAgents.length}/10 • Each executive brings deep domain expertise and critical thinking</p>
+        <p className="text-sm text-slate-400 mt-1">Selected: {selectedAgents.length}/10 • Click cards to select/deselect executives</p>
       </div>
 
       {/* View Mode Toggle */}
@@ -286,7 +300,10 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
               >
                 <span>{agent.role}</span>
                 <button
-                  onClick={() => toggleAgent(agent)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleAgent(agent);
+                  }}
                   className="text-blue-300 hover:text-blue-100"
                 >
                   <X className="w-3 h-3" />
@@ -299,74 +316,80 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
 
       {/* Agent Cards */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {availableAgents.map((agent) => {
             const isSelected = selectedAgents.some(selected => selected.role === agent.role);
             const canSelect = selectedAgents.length < 10 || isSelected;
-            const isExpanded = expandedAgent === agent.role;
 
             return (
               <div
                 key={agent.role}
+                onClick={() => canSelect && toggleAgent(agent)}
                 className={`
-                  p-6 rounded-xl border-2 transition-all duration-200 h-full
+                  p-6 rounded-xl border-2 transition-all duration-200 h-full cursor-pointer
                   ${isSelected 
-                    ? 'border-blue-500 bg-blue-500/20 shadow-lg shadow-blue-500/25' 
+                    ? 'border-blue-500 bg-blue-500/20 shadow-lg shadow-blue-500/25 transform scale-105' 
                     : canSelect
-                      ? 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800/70'
-                      : 'border-slate-700 bg-slate-800/30 opacity-50'
+                      ? 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800/70 hover:transform hover:scale-102'
+                      : 'border-slate-700 bg-slate-800/30 opacity-50 cursor-not-allowed'
                   }
                 `}
               >
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-white text-lg">{agent.role}</h3>
-                  <div className="flex items-center gap-2">
-                    {isSelected && <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>}
-                    <button
-                      onClick={() => setExpandedAgent(isExpanded ? null : agent.role)}
-                      className="text-slate-400 hover:text-slate-200 p-1"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {isSelected && <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>}
                 </div>
                 <p className="text-sm text-slate-300 mb-3 font-medium">{agent.name}</p>
                 <p className="text-xs text-slate-400 mb-4 leading-relaxed">{agent.persona}</p>
                 
-                <div className="space-y-2 mb-4">
+                <div className="space-y-2">
                   <p className="text-xs font-medium text-slate-300">Core Expertise:</p>
                   <div className="flex flex-wrap gap-1">
-                    {(isExpanded ? agent.expertise : agent.expertise.slice(0, 3)).map((skill) => (
+                    {agent.expertise.slice(0, 3).map((skill) => (
                       <span key={skill} className="text-xs bg-slate-700/70 text-slate-300 px-2 py-1 rounded-md">
                         {skill}
                       </span>
                     ))}
-                    {!isExpanded && agent.expertise.length > 3 && (
-                      <button
-                        onClick={() => setExpandedAgent(agent.role)}
-                        className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-md bg-slate-700/50 hover:bg-slate-700"
-                      >
-                        +{agent.expertise.length - 3} more
-                      </button>
+                    {agent.expertise.length > 3 && (
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpertisePopover(expertisePopover === agent.role ? null : agent.role);
+                          }}
+                          className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-md bg-slate-700/50 hover:bg-slate-700"
+                        >
+                          +{agent.expertise.length - 3} more
+                        </button>
+                        
+                        {/* Expertise Popover */}
+                        {expertisePopover === agent.role && (
+                          <div className="absolute z-50 top-full left-0 mt-2 w-80 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-medium text-white">All Expertise Areas</h4>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpertisePopover(null);
+                                }}
+                                className="text-slate-400 hover:text-slate-200"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {agent.expertise.map((skill) => (
+                                <span key={skill} className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded-md">
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
-
-                <button
-                  onClick={() => canSelect && toggleAgent(agent)}
-                  disabled={!canSelect}
-                  className={`
-                    w-full py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200
-                    ${isSelected
-                      ? 'bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30'
-                      : canSelect
-                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30'
-                        : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                    }
-                  `}
-                >
-                  {isSelected ? 'Remove from Board' : 'Add to Board'}
-                </button>
               </div>
             );
           })}
@@ -377,18 +400,18 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
           {availableAgents.map((agent) => {
             const isSelected = selectedAgents.some(selected => selected.role === agent.role);
             const canSelect = selectedAgents.length < 10 || isSelected;
-            const isExpanded = expandedAgent === agent.role;
 
             return (
               <div
                 key={agent.role}
+                onClick={() => canSelect && toggleAgent(agent)}
                 className={`
-                  p-4 rounded-xl border transition-all duration-200
+                  p-4 rounded-xl border transition-all duration-200 cursor-pointer
                   ${isSelected 
-                    ? 'border-blue-500 bg-blue-500/20' 
+                    ? 'border-blue-500 bg-blue-500/20 shadow-lg' 
                     : canSelect
-                      ? 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
-                      : 'border-slate-700 bg-slate-800/30 opacity-50'
+                      ? 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800/70'
+                      : 'border-slate-700 bg-slate-800/30 opacity-50 cursor-not-allowed'
                   }
                 `}
               >
@@ -402,44 +425,50 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                     <p className="text-xs text-slate-400 mb-3">{agent.persona}</p>
                     
                     <div className="flex flex-wrap gap-1 mb-2">
-                      {(isExpanded ? agent.expertise : agent.expertise.slice(0, 5)).map((skill) => (
+                      {agent.expertise.slice(0, 5).map((skill) => (
                         <span key={skill} className="text-xs bg-slate-700/70 text-slate-300 px-2 py-1 rounded-md">
                           {skill}
                         </span>
                       ))}
-                      {!isExpanded && agent.expertise.length > 5 && (
-                        <button
-                          onClick={() => setExpandedAgent(agent.role)}
-                          className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-md bg-slate-700/50 hover:bg-slate-700"
-                        >
-                          +{agent.expertise.length - 5} more
-                        </button>
+                      {agent.expertise.length > 5 && (
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpertisePopover(expertisePopover === agent.role ? null : agent.role);
+                            }}
+                            className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-md bg-slate-700/50 hover:bg-slate-700"
+                          >
+                            +{agent.expertise.length - 5} more
+                          </button>
+                          
+                          {/* Expertise Popover */}
+                          {expertisePopover === agent.role && (
+                            <div className="absolute z-50 top-full left-0 mt-2 w-80 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-medium text-white">All Expertise Areas</h4>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpertisePopover(null);
+                                  }}
+                                  className="text-slate-400 hover:text-slate-200"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {agent.expertise.map((skill) => (
+                                  <span key={skill} className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded-md">
+                                    {skill}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 ml-4">
-                    <button
-                      onClick={() => setExpandedAgent(isExpanded ? null : agent.role)}
-                      className="text-slate-400 hover:text-slate-200 p-2"
-                    >
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                    <button
-                      onClick={() => canSelect && toggleAgent(agent)}
-                      disabled={!canSelect}
-                      className={`
-                        py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200
-                        ${isSelected
-                          ? 'bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30'
-                          : canSelect
-                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30'
-                            : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                        }
-                      `}
-                    >
-                      {isSelected ? 'Remove' : 'Add'}
-                    </button>
                   </div>
                 </div>
               </div>
