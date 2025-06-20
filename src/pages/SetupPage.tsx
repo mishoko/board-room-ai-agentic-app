@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Plus, X, Building, Target, FileText, ArrowRight, Loader2 } from 'lucide-react';
+import { Users, Plus, X, Building, Target, FileText, ArrowRight, Loader2, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { Agent, Topic, CompanyContext, BoardroomSession } from '../types';
 import { LLMService } from '../services/LLMService';
 
@@ -24,6 +24,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const [newGoal, setNewGoal] = useState('');
   const [isGeneratingResponses, setIsGeneratingResponses] = useState(false);
   const [generationProgress, setGenerationProgress] = useState('');
+  const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
 
   // Enhanced agent templates with deeper expertise
   const availableAgents: Omit<Agent, 'id' | 'isActive'>[] = [
@@ -32,42 +34,70 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
       name: 'Chief Executive Officer',
       persona: 'Visionary strategic leader with 15+ years of C-suite experience, known for challenging assumptions and driving transformational growth',
       experience: '15+ years in executive leadership across multiple industries',
-      expertise: ['Strategic Planning & Execution', 'Market Analysis & Competitive Intelligence', 'Stakeholder Management', 'M&A Strategy', 'Board Relations', 'Crisis Management', 'Organizational Transformation', 'Capital Markets']
+      expertise: ['Strategic Planning & Execution', 'Market Analysis & Competitive Intelligence', 'Stakeholder Management', 'M&A Strategy', 'Board Relations', 'Crisis Management', 'Organizational Transformation', 'Capital Markets', 'Vision & Culture Development', 'Risk Assessment & Mitigation']
     },
     {
       role: 'CTO',
       name: 'Chief Technology Officer',
       persona: 'Technical visionary and engineering leader with deep expertise in scalable architecture and emerging technologies',
       experience: '12+ years in technology leadership at high-growth companies',
-      expertise: ['Enterprise Architecture', 'Cloud Infrastructure & DevOps', 'Cybersecurity & Compliance', 'AI/ML Implementation', 'API Strategy', 'Technical Due Diligence', 'Engineering Team Scaling', 'Technology Risk Management']
+      expertise: ['Enterprise Architecture', 'Cloud Infrastructure & DevOps', 'Cybersecurity & Compliance', 'AI/ML Implementation', 'API Strategy', 'Technical Due Diligence', 'Engineering Team Scaling', 'Technology Risk Management', 'Data Architecture & Analytics', 'Innovation & R&D Strategy']
     },
     {
       role: 'CFO',
       name: 'Chief Financial Officer',
       persona: 'Strategic financial leader with expertise in capital markets, M&A, and operational finance across multiple business cycles',
       experience: '12+ years in financial leadership including IPO and acquisition experience',
-      expertise: ['Financial Planning & Analysis', 'Capital Structure Optimization', 'Risk Management & Controls', 'M&A Financial Modeling', 'Investor Relations', 'Tax Strategy', 'Working Capital Management', 'Financial Systems & Reporting']
+      expertise: ['Financial Planning & Analysis', 'Capital Structure Optimization', 'Risk Management & Controls', 'M&A Financial Modeling', 'Investor Relations', 'Tax Strategy', 'Working Capital Management', 'Financial Systems & Reporting', 'Treasury & Cash Management', 'Budgeting & Forecasting']
     },
     {
       role: 'CMO',
       name: 'Chief Marketing Officer',
       persona: 'Growth-focused marketing executive with expertise in brand building, digital transformation, and customer acquisition at scale',
       experience: '10+ years in marketing leadership across B2B and B2C environments',
-      expertise: ['Brand Strategy & Positioning', 'Digital Marketing & MarTech', 'Customer Acquisition & Retention', 'Product Marketing', 'Marketing Analytics & Attribution', 'Content Strategy', 'Partnership Marketing', 'Crisis Communications']
+      expertise: ['Brand Strategy & Positioning', 'Digital Marketing & MarTech', 'Customer Acquisition & Retention', 'Product Marketing', 'Marketing Analytics & Attribution', 'Content Strategy', 'Partnership Marketing', 'Crisis Communications', 'Market Research & Insights', 'Growth Hacking & Optimization']
     },
     {
       role: 'CHRO',
       name: 'Chief Human Resources Officer',
       persona: 'People-first executive leader specializing in organizational development, culture transformation, and talent strategy',
       experience: '12+ years in HR leadership through hypergrowth and organizational change',
-      expertise: ['Talent Acquisition & Retention', 'Organizational Design & Development', 'Culture & Change Management', 'Compensation & Benefits Strategy', 'Leadership Development', 'Employee Relations & Legal Compliance', 'Diversity, Equity & Inclusion', 'Performance Management Systems']
+      expertise: ['Talent Acquisition & Retention', 'Organizational Design & Development', 'Culture & Change Management', 'Compensation & Benefits Strategy', 'Leadership Development', 'Employee Relations & Legal Compliance', 'Diversity, Equity & Inclusion', 'Performance Management Systems', 'Workforce Planning & Analytics', 'Executive Coaching & Development']
     },
     {
       role: 'COO',
       name: 'Chief Operating Officer',
       persona: 'Operations excellence leader with expertise in scaling processes, supply chain optimization, and cross-functional execution',
       experience: '14+ years in operations leadership across multiple industries and business models',
-      expertise: ['Operations Strategy & Execution', 'Process Optimization & Automation', 'Supply Chain Management', 'Quality Assurance & Six Sigma', 'Project Management & PMO', 'Vendor Management & Procurement', 'Business Continuity Planning', 'Operational Risk Management']
+      expertise: ['Operations Strategy & Execution', 'Process Optimization & Automation', 'Supply Chain Management', 'Quality Assurance & Six Sigma', 'Project Management & PMO', 'Vendor Management & Procurement', 'Business Continuity Planning', 'Operational Risk Management', 'Customer Success & Support', 'International Operations & Expansion']
+    },
+    {
+      role: 'CPO',
+      name: 'Chief Product Officer',
+      persona: 'Product visionary with expertise in user-centered design, product strategy, and data-driven product development',
+      experience: '10+ years in product leadership at technology companies',
+      expertise: ['Product Strategy & Roadmapping', 'User Experience & Design', 'Product Analytics & Data Science', 'Agile & Lean Methodologies', 'Product-Market Fit', 'Competitive Analysis', 'Product Monetization', 'Customer Research & Validation', 'Product Team Leadership', 'Go-to-Market Strategy']
+    },
+    {
+      role: 'CLO',
+      name: 'Chief Legal Officer',
+      persona: 'Strategic legal advisor with expertise in corporate law, compliance, and risk management across complex business environments',
+      experience: '12+ years in legal leadership including regulatory and M&A experience',
+      expertise: ['Corporate Governance & Compliance', 'Contract Negotiation & Management', 'Intellectual Property Strategy', 'Regulatory Affairs & Government Relations', 'M&A Legal Due Diligence', 'Employment Law & HR Legal', 'Data Privacy & Security Law', 'Litigation Management', 'Risk Assessment & Mitigation', 'International Legal Affairs']
+    },
+    {
+      role: 'CSO',
+      name: 'Chief Strategy Officer',
+      persona: 'Strategic planning expert with deep expertise in market analysis, competitive intelligence, and business transformation',
+      experience: '11+ years in strategy consulting and corporate strategy roles',
+      expertise: ['Strategic Planning & Analysis', 'Market Research & Competitive Intelligence', 'Business Model Innovation', 'Portfolio Management', 'Strategic Partnerships & Alliances', 'Digital Transformation Strategy', 'Innovation Strategy', 'Scenario Planning & Forecasting', 'Strategic Communication', 'Performance Measurement & KPIs']
+    },
+    {
+      role: 'CDO',
+      name: 'Chief Data Officer',
+      persona: 'Data strategy leader with expertise in analytics, AI/ML implementation, and data-driven decision making',
+      experience: '9+ years in data leadership and analytics across multiple industries',
+      expertise: ['Data Strategy & Governance', 'Analytics & Business Intelligence', 'Machine Learning & AI Implementation', 'Data Architecture & Engineering', 'Data Privacy & Security', 'Advanced Analytics & Modeling', 'Data Monetization Strategy', 'Data Quality & Management', 'Predictive Analytics', 'Data Science Team Leadership']
     }
   ];
 
@@ -220,48 +250,203 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         <p className="text-sm text-slate-400 mt-1">Selected: {selectedAgents.length}/10 • Each executive brings deep domain expertise and critical thinking</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {availableAgents.map((agent) => {
-          const isSelected = selectedAgents.some(selected => selected.role === agent.role);
-          const canSelect = selectedAgents.length < 10 || isSelected;
+      {/* View Mode Toggle */}
+      <div className="flex items-center justify-center gap-4 mb-6">
+        <button
+          onClick={() => setViewMode('grid')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+            viewMode === 'grid'
+              ? 'bg-blue-500 text-white'
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          }`}
+        >
+          Grid View
+        </button>
+        <button
+          onClick={() => setViewMode('compact')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+            viewMode === 'compact'
+              ? 'bg-blue-500 text-white'
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          }`}
+        >
+          Compact View
+        </button>
+      </div>
 
-          return (
-            <div
-              key={agent.role}
-              onClick={() => canSelect && toggleAgent(agent)}
-              className={`
-                p-6 rounded-xl border-2 cursor-pointer transition-all duration-200 h-full
-                ${isSelected 
-                  ? 'border-blue-500 bg-blue-500/20 shadow-lg shadow-blue-500/25' 
-                  : canSelect
-                    ? 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800/70'
-                    : 'border-slate-700 bg-slate-800/30 opacity-50 cursor-not-allowed'
-                }
-              `}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-white text-lg">{agent.role}</h3>
-                {isSelected && <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>}
+      {/* Selected Agents Summary */}
+      {selectedAgents.length > 0 && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
+          <h3 className="text-blue-300 font-medium mb-2">Selected Executives ({selectedAgents.length})</h3>
+          <div className="flex flex-wrap gap-2">
+            {selectedAgents.map((agent) => (
+              <div
+                key={agent.id}
+                className="flex items-center gap-2 bg-blue-500/20 text-blue-200 px-3 py-1 rounded-lg text-sm"
+              >
+                <span>{agent.role}</span>
+                <button
+                  onClick={() => toggleAgent(agent)}
+                  className="text-blue-300 hover:text-blue-100"
+                >
+                  <X className="w-3 h-3" />
+                </button>
               </div>
-              <p className="text-sm text-slate-300 mb-3 font-medium">{agent.name}</p>
-              <p className="text-xs text-slate-400 mb-4 leading-relaxed">{agent.persona}</p>
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-slate-300">Core Expertise:</p>
-                <div className="flex flex-wrap gap-1">
-                  {agent.expertise.slice(0, 4).map((skill) => (
-                    <span key={skill} className="text-xs bg-slate-700/70 text-slate-300 px-2 py-1 rounded-md">
-                      {skill}
-                    </span>
-                  ))}
-                  {agent.expertise.length > 4 && (
-                    <span className="text-xs text-slate-400">+{agent.expertise.length - 4} more</span>
-                  )}
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Agent Cards */}
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {availableAgents.map((agent) => {
+            const isSelected = selectedAgents.some(selected => selected.role === agent.role);
+            const canSelect = selectedAgents.length < 10 || isSelected;
+            const isExpanded = expandedAgent === agent.role;
+
+            return (
+              <div
+                key={agent.role}
+                className={`
+                  p-6 rounded-xl border-2 transition-all duration-200 h-full
+                  ${isSelected 
+                    ? 'border-blue-500 bg-blue-500/20 shadow-lg shadow-blue-500/25' 
+                    : canSelect
+                      ? 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800/70'
+                      : 'border-slate-700 bg-slate-800/30 opacity-50'
+                  }
+                `}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-white text-lg">{agent.role}</h3>
+                  <div className="flex items-center gap-2">
+                    {isSelected && <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>}
+                    <button
+                      onClick={() => setExpandedAgent(isExpanded ? null : agent.role)}
+                      className="text-slate-400 hover:text-slate-200 p-1"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-300 mb-3 font-medium">{agent.name}</p>
+                <p className="text-xs text-slate-400 mb-4 leading-relaxed">{agent.persona}</p>
+                
+                <div className="space-y-2 mb-4">
+                  <p className="text-xs font-medium text-slate-300">Core Expertise:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(isExpanded ? agent.expertise : agent.expertise.slice(0, 3)).map((skill) => (
+                      <span key={skill} className="text-xs bg-slate-700/70 text-slate-300 px-2 py-1 rounded-md">
+                        {skill}
+                      </span>
+                    ))}
+                    {!isExpanded && agent.expertise.length > 3 && (
+                      <button
+                        onClick={() => setExpandedAgent(agent.role)}
+                        className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-md bg-slate-700/50 hover:bg-slate-700"
+                      >
+                        +{agent.expertise.length - 3} more
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => canSelect && toggleAgent(agent)}
+                  disabled={!canSelect}
+                  className={`
+                    w-full py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200
+                    ${isSelected
+                      ? 'bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30'
+                      : canSelect
+                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30'
+                        : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                    }
+                  `}
+                >
+                  {isSelected ? 'Remove from Board' : 'Add to Board'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Compact View */
+        <div className="space-y-3">
+          {availableAgents.map((agent) => {
+            const isSelected = selectedAgents.some(selected => selected.role === agent.role);
+            const canSelect = selectedAgents.length < 10 || isSelected;
+            const isExpanded = expandedAgent === agent.role;
+
+            return (
+              <div
+                key={agent.role}
+                className={`
+                  p-4 rounded-xl border transition-all duration-200
+                  ${isSelected 
+                    ? 'border-blue-500 bg-blue-500/20' 
+                    : canSelect
+                      ? 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
+                      : 'border-slate-700 bg-slate-800/30 opacity-50'
+                  }
+                `}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-4 mb-2">
+                      <h3 className="font-bold text-white text-lg">{agent.role}</h3>
+                      <span className="text-sm text-slate-400">{agent.name}</span>
+                      {isSelected && <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>}
+                    </div>
+                    <p className="text-xs text-slate-400 mb-3">{agent.persona}</p>
+                    
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {(isExpanded ? agent.expertise : agent.expertise.slice(0, 5)).map((skill) => (
+                        <span key={skill} className="text-xs bg-slate-700/70 text-slate-300 px-2 py-1 rounded-md">
+                          {skill}
+                        </span>
+                      ))}
+                      {!isExpanded && agent.expertise.length > 5 && (
+                        <button
+                          onClick={() => setExpandedAgent(agent.role)}
+                          className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-md bg-slate-700/50 hover:bg-slate-700"
+                        >
+                          +{agent.expertise.length - 5} more
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 ml-4">
+                    <button
+                      onClick={() => setExpandedAgent(isExpanded ? null : agent.role)}
+                      className="text-slate-400 hover:text-slate-200 p-2"
+                    >
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => canSelect && toggleAgent(agent)}
+                      disabled={!canSelect}
+                      className={`
+                        py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200
+                        ${isSelected
+                          ? 'bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30'
+                          : canSelect
+                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30'
+                            : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                        }
+                      `}
+                    >
+                      {isSelected ? 'Remove' : 'Add'}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 
