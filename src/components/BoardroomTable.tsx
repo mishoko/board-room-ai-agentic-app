@@ -1,81 +1,82 @@
 import React, { useState, useEffect } from 'react';
 import BoardMember from './BoardMember';
 import { Users, User, Pause, Play, MessageSquare, Send } from 'lucide-react';
+import { BoardAgentBase } from '../agents/BoardAgentBase';
+import { Topic, Message } from '../types';
 
 interface BoardroomTableProps {
   onUserMessage?: (message: string) => void;
+  agents?: BoardAgentBase[];
+  currentTopic?: Topic;
 }
 
-const BoardroomTable: React.FC<BoardroomTableProps> = ({ onUserMessage }) => {
+const BoardroomTable: React.FC<BoardroomTableProps> = ({ 
+  onUserMessage, 
+  agents = [], 
+  currentTopic 
+}) => {
   const [activeMembers, setActiveMembers] = useState<string[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [isInterrupting, setIsInterrupting] = useState(false);
   const [userMessage, setUserMessage] = useState('');
-  
-  const boardMembers = [
-    {
-      name: 'CEO',
-      position: 'top-left' as const,
-      messages: [
-        "We need to focus on our Q4 growth targets and ensure our AI initiatives align with market demands.",
-        "The board is expecting a 25% increase in efficiency from our new automation systems.",
-        "Let's discuss the strategic partnerships we've been considering for next quarter.",
-        "I think we should prioritize customer feedback in our decision-making process.",
-        "The market conditions are favorable for our expansion plans."
-      ]
-    },
-    {
-      name: 'CTO',
-      position: 'top-center' as const,
-      messages: [
-        "Our machine learning models are showing promising results in the beta testing phase.",
-        "We should consider scaling our infrastructure to handle the increased data processing load.",
-        "The new AI architecture will require additional security protocols and compliance measures.",
-        "I recommend implementing automated testing for our AI systems to ensure reliability.",
-        "The technical team is ready to support the infrastructure scaling initiatives."
-      ]
-    },
-    {
-      name: 'Accountant',
-      position: 'top-right' as const,
-      messages: [
-        "The ROI on our AI investments is projected to break even by Q2 next year.",
-        "We need to allocate additional budget for cloud computing resources and data storage.",
-        "The cost analysis shows significant savings in operational expenses once fully implemented.",
-        "I suggest we review our quarterly budget allocation for these new initiatives.",
-        "The financial projections look positive, but we should monitor cash flow closely."
-      ]
-    }
-  ];
-
   const [currentMessages, setCurrentMessages] = useState<{[key: string]: string}>({});
 
+  // Enhanced conversation system using agents
   useEffect(() => {
-    if (isPaused || isInterrupting) return;
+    if (isPaused || isInterrupting || agents.length === 0 || !currentTopic) return;
 
-    const interval = setInterval(() => {
-      // Randomly activate/deactivate board members
-      const randomMember = boardMembers[Math.floor(Math.random() * boardMembers.length)];
-      const randomMessage = randomMember.messages[Math.floor(Math.random() * randomMember.messages.length)];
+    const interval = setInterval(async () => {
+      // Select a random agent to speak
+      const availableAgents = agents.filter(agent => agent.getAgent().isActive);
+      if (availableAgents.length === 0) return;
+
+      const randomAgent = availableAgents[Math.floor(Math.random() * availableAgents.length)];
       
-      setActiveMembers(prev => {
-        const newActive = Math.random() > 0.6 ? [] : [randomMember.name];
-        return newActive;
-      });
+      // Check if agent should respond based on context
+      const recentMessages: Message[] = []; // TODO: Implement message history
+      const shouldRespond = randomAgent.shouldRespond(recentMessages, currentTopic);
       
-      setCurrentMessages(prev => ({
-        ...prev,
-        [randomMember.name]: randomMessage
-      }));
-    }, 3000);
+      if (shouldRespond) {
+        try {
+          // Generate contextual response
+          const response = await randomAgent.generateResponse('', {
+            recentMessages,
+            topic: currentTopic
+          });
+          
+          setActiveMembers([randomAgent.getAgent().role]);
+          setCurrentMessages(prev => ({
+            ...prev,
+            [randomAgent.getAgent().role]: response
+          }));
+          
+          // Create message object for history
+          const message: Message = {
+            id: `msg-${Date.now()}`,
+            agentId: randomAgent.getAgent().id,
+            text: response,
+            timestamp: new Date(),
+            topicId: currentTopic.id
+          };
+          
+          // Add to agent's conversation history
+          randomAgent.addToHistory(message);
+          
+        } catch (error) {
+          console.error('Error generating agent response:', error);
+        }
+      } else {
+        // Clear active members if no one should speak
+        setActiveMembers([]);
+      }
+    }, 4000); // Slightly longer interval for more realistic conversation
 
     return () => clearInterval(interval);
-  }, [isPaused, isInterrupting]);
+  }, [isPaused, isInterrupting, agents, currentTopic]);
 
   const handlePauseToggle = () => {
     setIsPaused(!isPaused);
     if (!isPaused) {
-      // Clear active members when pausing
       setActiveMembers([]);
     }
   };
@@ -86,14 +87,15 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({ onUserMessage }) => {
     setActiveMembers([]);
   };
 
-  const handleSendMessage = () => {
-    if (userMessage.trim()) {
-      // Call the callback if provided
+  const handleSendMessage = async () => {
+    if (userMessage.trim() && currentTopic) {
       if (onUserMessage) {
         onUserMessage(userMessage);
       }
       
-      // Reset states
+      // TODO: Process user message through agents and generate responses
+      // This is where the agentic branching will happen
+      
       setUserMessage('');
       setIsInterrupting(false);
       setIsPaused(false);
@@ -113,6 +115,16 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({ onUserMessage }) => {
     setIsPaused(false);
   };
 
+  // Get positions for agents (distribute around table)
+  const getAgentPosition = (index: number, total: number): 'top-left' | 'top-center' | 'top-right' => {
+    if (total === 1) return 'top-center';
+    if (total === 2) return index === 0 ? 'top-left' : 'top-right';
+    
+    // For 3+ agents, distribute evenly
+    const positions: ('top-left' | 'top-center' | 'top-right')[] = ['top-left', 'top-center', 'top-right'];
+    return positions[index % 3];
+  };
+
   return (
     <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-3xl p-8 backdrop-blur-sm border border-slate-700/50 shadow-2xl">
       {/* Status Indicator */}
@@ -130,6 +142,15 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({ onUserMessage }) => {
         </div>
       )}
 
+      {/* Current Topic Indicator */}
+      {currentTopic && (
+        <div className="absolute top-4 left-4 z-20">
+          <div className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200">
+            Topic: {currentTopic.title}
+          </div>
+        </div>
+      )}
+
       {/* Poker Table Surface */}
       <div className="relative h-96 bg-gradient-to-br from-green-800/30 to-green-900/30 rounded-full border-8 border-amber-700/50 shadow-inner">
         {/* Table felt pattern */}
@@ -143,13 +164,13 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({ onUserMessage }) => {
         </div>
 
         {/* Board Members */}
-        {boardMembers.map((member) => (
+        {agents.slice(0, 3).map((agent, index) => (
           <BoardMember
-            key={member.name}
-            name={member.name}
-            position={member.position}
-            message={currentMessages[member.name] || ''}
-            isActive={activeMembers.includes(member.name) && !isPaused && !isInterrupting}
+            key={agent.getAgent().id}
+            name={agent.getAgent().role}
+            position={getAgentPosition(index, Math.min(agents.length, 3))}
+            message={currentMessages[agent.getAgent().role] || ''}
+            isActive={activeMembers.includes(agent.getAgent().role) && !isPaused && !isInterrupting}
           />
         ))}
 
