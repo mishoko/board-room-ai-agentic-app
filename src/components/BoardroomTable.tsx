@@ -32,6 +32,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   const [activeTimeouts, setActiveTimeouts] = useState<{[key: string]: NodeJS.Timeout}>({});
   const [isHoveringBubble, setIsHoveringBubble] = useState(false);
   const [pausedByHover, setPausedByHover] = useState(false);
+  const [conversationStarted, setConversationStarted] = useState(false);
 
   // Calculate dynamic conversation settings based on topic duration
   const getConversationSettings = (topicDuration: number) => {
@@ -40,7 +41,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       // Very short meetings (1-5 minutes): Quick, focused exchanges
       return {
         targetMessages: Math.max(4, topicDuration * 1), // 1 message per minute minimum
-        conversationInterval: 8000, // 8 seconds between messages
+        conversationInterval: 4000, // 4 seconds between messages (faster)
         messageReadingMultiplier: 1.5, // Faster reading for urgency
         responseComplexity: 'concise' // Shorter, more direct responses
       };
@@ -48,7 +49,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       // Short meetings (6-10 minutes): Moderate discussion
       return {
         targetMessages: topicDuration * 1.2, // ~1.2 messages per minute
-        conversationInterval: 6000, // 6 seconds between messages
+        conversationInterval: 3500, // 3.5 seconds between messages
         messageReadingMultiplier: 1.8,
         responseComplexity: 'moderate'
       };
@@ -56,7 +57,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       // Medium meetings (11-20 minutes): Rich discussion
       return {
         targetMessages: topicDuration * 0.8, // ~0.8 messages per minute
-        conversationInterval: 4500, // 4.5 seconds between messages
+        conversationInterval: 3000, // 3 seconds between messages
         messageReadingMultiplier: 2.0,
         responseComplexity: 'detailed'
       };
@@ -64,7 +65,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       // Long meetings (20+ minutes): Deep, thorough analysis
       return {
         targetMessages: topicDuration * 0.6, // ~0.6 messages per minute
-        conversationInterval: 3500, // 3.5 seconds between messages
+        conversationInterval: 2500, // 2.5 seconds between messages
         messageReadingMultiplier: 2.5, // Longer reading time for complex content
         responseComplexity: 'comprehensive'
       };
@@ -219,6 +220,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       setMessageDurations({});
       setIsInterrupted(false);
       setConversationContext([]);
+      setConversationStarted(false); // Reset conversation started flag
       
       if (state && onTopicStateChange) {
         stateManager.onTopicComplete(currentTopic.id, (topicId, completedState) => {
@@ -229,10 +231,88 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     }
   }, [currentTopic?.id, stateManager, onTopicStateChange]);
 
+  // IMMEDIATE conversation starter - triggers first message right away
+  useEffect(() => {
+    if (!conversationStarted && currentTopic && stateManager && agents.length > 0 && !isPaused && !isInterrupting) {
+      const currentState = stateManager.getTopicState(currentTopic.id);
+      if (currentState && currentState.status === 'active') {
+        console.log('🚀 Starting conversation immediately for topic:', currentTopic.title);
+        setConversationStarted(true);
+        
+        // Start first message immediately (no delay)
+        setTimeout(async () => {
+          if (isPaused || isInterrupting || pausedByHover || isHoveringBubble) return;
+          
+          const availableAgents = agents.filter(agent => agent.getAgent().isActive);
+          if (availableAgents.length === 0) return;
+
+          // Pick a random agent to start the conversation
+          const randomAgent = availableAgents[Math.floor(Math.random() * availableAgents.length)];
+          
+          try {
+            const response = await randomAgent.generateResponse('', {
+              recentMessages: [],
+              topic: currentTopic,
+              userInput: undefined
+            });
+            
+            const duration = calculateMessageDuration(response, currentTopic.estimatedDuration);
+            const agentRole = randomAgent.getAgent().role;
+            
+            console.log(`🎯 ${agentRole} opening conversation: "${response.substring(0, 60)}..."`);
+            
+            setActiveMembers([agentRole]);
+            setCurrentMessages({ [agentRole]: response });
+            setMessageDurations({ [agentRole]: duration });
+            
+            const message: Message = {
+              id: `msg-${Date.now()}`,
+              agentId: randomAgent.getAgent().id,
+              text: response,
+              timestamp: new Date(),
+              topicId: currentTopic.id
+            };
+            
+            stateManager.addMessage(currentTopic.id, message);
+            const updatedState = stateManager.getTopicState(currentTopic.id);
+            setTopicState(updatedState);
+            randomAgent.addToHistory(message);
+            
+            // Set timeout to clear the message
+            const timeoutId = setTimeout(() => {
+              console.log(`⏰ Clearing opening message for ${agentRole}`);
+              setActiveMembers(prev => prev.filter(member => member !== agentRole));
+              setCurrentMessages(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+              setMessageDurations(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+              setActiveTimeouts(prev => {
+                const updated = { ...prev };
+                delete updated[agentRole];
+                return updated;
+              });
+            }, duration);
+            
+            setActiveTimeouts({ [agentRole]: timeoutId });
+            
+          } catch (error) {
+            console.error('Error generating opening response:', error);
+          }
+        }, 100); // Minimal 100ms delay just to ensure everything is initialized
+      }
+    }
+  }, [conversationStarted, currentTopic, stateManager, agents, isPaused, isInterrupting]);
+
   // Enhanced conversation system with dynamic frequency based on topic duration
   useEffect(() => {
     // Don't start new conversations if paused, interrupting, hovering, or no agents
-    if (isPaused || isInterrupting || pausedByHover || isHoveringBubble || agents.length === 0 || !currentTopic || !stateManager) return;
+    if (isPaused || isInterrupting || pausedByHover || isHoveringBubble || agents.length === 0 || !currentTopic || !stateManager || !conversationStarted) return;
     
     const currentState = stateManager.getTopicState(currentTopic.id);
     if (!currentState || currentState.status === 'completed') return;
@@ -357,7 +437,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     }, conversationSettings.conversationInterval); // Use dynamic interval
 
     return () => clearInterval(interval);
-  }, [isPaused, isInterrupting, pausedByHover, isHoveringBubble, agents, currentTopic, stateManager, isInterrupted, activeTimeouts]);
+  }, [isPaused, isInterrupting, pausedByHover, isHoveringBubble, agents, currentTopic, stateManager, isInterrupted, activeTimeouts, conversationStarted]);
 
   const handlePauseToggle = () => {
     const newPausedState = !isPaused;
