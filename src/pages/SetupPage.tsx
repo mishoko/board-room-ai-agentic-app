@@ -24,7 +24,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const [newGoal, setNewGoal] = useState('');
   const [isGeneratingResponses, setIsGeneratingResponses] = useState(false);
 
-  // Complete set of 12 executive templates with deep expertise
+  // Original creative executive templates with the Chief Vibe Coding Officer and others
   const availableAgents: Omit<Agent, 'id' | 'isActive'>[] = [
     {
       role: 'CEO',
@@ -69,6 +69,13 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
       expertise: ['Operations Strategy & Execution', 'Process Optimization & Automation', 'Supply Chain Management', 'Quality Assurance & Six Sigma', 'Project Management & PMO', 'Vendor Management & Procurement', 'Business Continuity Planning', 'Operational Risk Management']
     },
     {
+      role: 'CVCO',
+      name: 'Chief Vibe Coding Officer',
+      persona: 'Innovative tech leader who bridges engineering excellence with company culture, ensuring code quality while maintaining team morale and creative energy',
+      experience: '8+ years combining technical leadership with cultural development in fast-paced startups',
+      expertise: ['Full-Stack Development', 'Team Culture & Morale', 'Code Quality & Standards', 'Developer Experience', 'Technical Mentoring', 'Agile Methodologies', 'Innovation Labs', 'Work-Life Balance Optimization']
+    },
+    {
       role: 'CPO',
       name: 'Chief Product Officer',
       persona: 'Product visionary with deep expertise in user experience, product strategy, and data-driven product development',
@@ -109,6 +116,27 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
       persona: 'Strategic planning expert with deep experience in corporate strategy, market analysis, and business transformation',
       experience: '10+ years in strategy consulting and corporate strategy roles',
       expertise: ['Corporate Strategy Development', 'Market Analysis & Intelligence', 'Business Model Innovation', 'Strategic Planning & Execution', 'Competitive Analysis', 'Portfolio Management', 'Strategic Partnerships', 'Digital Transformation Strategy']
+    },
+    {
+      role: 'CHCO',
+      name: 'Chief Happiness & Culture Officer',
+      persona: 'Culture evangelist focused on employee wellbeing, organizational happiness, and creating positive work environments that drive performance',
+      experience: '7+ years in organizational psychology and culture development',
+      expertise: ['Employee Wellbeing Programs', 'Culture Design & Implementation', 'Team Building & Engagement', 'Mental Health Advocacy', 'Remote Work Culture', 'Fun & Recreation Planning', 'Conflict Resolution', 'Positive Psychology Applications']
+    },
+    {
+      role: 'CAIO',
+      name: 'Chief AI Officer',
+      persona: 'AI strategist and machine learning expert driving artificial intelligence adoption and ethical AI implementation across the organization',
+      experience: '6+ years in AI/ML leadership and research',
+      expertise: ['AI Strategy & Implementation', 'Machine Learning Operations', 'Ethical AI & Bias Prevention', 'Natural Language Processing', 'Computer Vision', 'AI Governance & Policy', 'Automation Strategy', 'AI Training & Education']
+    },
+    {
+      role: 'CGRO',
+      name: 'Chief Growth & Revenue Officer',
+      persona: 'Growth hacker and revenue optimization expert focused on scaling customer acquisition, retention, and lifetime value through data-driven strategies',
+      experience: '9+ years in growth marketing and revenue optimization',
+      expertise: ['Growth Hacking & Experimentation', 'Customer Lifecycle Management', 'Revenue Optimization', 'Conversion Rate Optimization', 'Viral Marketing Strategies', 'Product-Led Growth', 'Retention & Churn Analysis', 'Growth Analytics & Metrics']
     }
   ];
 
@@ -247,11 +275,11 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white mb-2">Select Executive Board Members</h2>
-        <p className="text-slate-300">Choose 2-10 C-level executives for sophisticated boardroom discussions</p>
+        <p className="text-slate-300">Choose 2-10 executives for sophisticated boardroom discussions</p>
         <p className="text-sm text-slate-400 mt-1">Selected: {selectedAgents.length}/10 • Each executive brings deep domain expertise and critical thinking</p>
       </div>
 
-      {/* Updated grid to show all 12 cards properly */}
+      {/* Updated grid to show all cards properly */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {availableAgents.map((agent) => {
           const isSelected = selectedAgents.some(selected => selected.role === agent.role);
