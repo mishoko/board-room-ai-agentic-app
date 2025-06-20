@@ -68,17 +68,17 @@ export class CEOAgent extends BoardAgentBase {
       const userText = latestUserMessage.text.toLowerCase();
       
       if (userText.includes('budget') || userText.includes('cost') || userText.includes('expensive')) {
-        return `I'm challenging the cost assumptions here - we need to examine the total economic impact of ${topic.title}, including opportunity costs and strategic value creation, not just immediate budget implications.`;
+        return `I'm challenging the cost assumptions here - we need to examine the total economic impact, including opportunity costs and strategic value creation, not just immediate budget implications.`;
       } else if (userText.includes('risk') || userText.includes('concern') || userText.includes('problem')) {
-        return `Your risk assessment is valid, but we're potentially over-indexing on downside scenarios. The competitive risk of inaction on ${topic.title} may outweigh the execution risks we're discussing.`;
+        return `Your risk assessment is valid, but we're potentially over-indexing on downside scenarios. The competitive risk of inaction may outweigh the execution risks we're discussing.`;
       } else if (userText.includes('competition') || userText.includes('competitor') || userText.includes('market')) {
-        return `The competitive dynamics you've raised are crucial - ${topic.title} isn't just about internal optimization, it's about market positioning and creating sustainable differentiation in ${companyContext.industry}.`;
+        return `The competitive dynamics you've raised are crucial - this isn't just about internal optimization, it's about market positioning and creating sustainable differentiation in ${companyContext.industry}.`;
       } else if (userText.includes('customer') || userText.includes('user') || userText.includes('client')) {
-        return `Customer-centricity is essential, but we need to distinguish between what customers say they want and what actually drives purchasing behavior. ${topic.title} must create measurable customer value, not just satisfaction.`;
+        return `Customer-centricity is essential, but we need to distinguish between what customers say they want and what actually drives purchasing behavior. We must create measurable customer value, not just satisfaction.`;
       } else if (userText.includes('timeline') || userText.includes('schedule') || userText.includes('deadline')) {
-        return `Timeline pressure is real, but premature execution of ${topic.title} could be more damaging than delayed perfection. We need to balance speed-to-market with strategic coherence.`;
+        return `Timeline pressure is real, but premature execution could be more damaging than delayed perfection. We need to balance speed-to-market with strategic coherence.`;
       } else {
-        return `Your perspective adds important nuance to our ${topic.title} discussion. As CEO, I'm focused on ensuring this decision aligns with our long-term strategic vision while addressing the immediate concerns you've raised.`;
+        return `Your perspective adds important nuance to our discussion. As CEO, I'm focused on ensuring this decision aligns with our long-term strategic vision while addressing the immediate concerns you've raised.`;
       }
     }
     
@@ -89,24 +89,24 @@ export class CEOAgent extends BoardAgentBase {
       const agentRole = this.getAgentRoleFromId(lastMessage.agentId);
       
       if (agentRole === 'CTO' && (messageText.includes('technical') || messageText.includes('architecture'))) {
-        return `I appreciate the technical complexity you've outlined, but we can't let perfect architecture be the enemy of market opportunity. ${topic.title} needs to balance technical elegance with business velocity.`;
+        return `I appreciate the technical complexity you've outlined, but we can't let perfect architecture be the enemy of market opportunity. We need to balance technical elegance with business velocity.`;
       } else if (agentRole === 'CFO' && (messageText.includes('financial') || messageText.includes('cost') || messageText.includes('roi'))) {
-        return `The financial analysis is thorough, but we're potentially undervaluing the strategic optionality that ${topic.title} creates. Some investments pay dividends beyond immediate ROI calculations.`;
+        return `The financial analysis is thorough, but we're potentially undervaluing the strategic optionality this creates. Some investments pay dividends beyond immediate ROI calculations.`;
       } else if (agentRole === 'CMO' && (messageText.includes('brand') || messageText.includes('customer') || messageText.includes('market'))) {
-        return `Brand considerations are important, but we can't let brand consistency constrain strategic evolution. ${topic.title} might require us to expand our brand narrative rather than fit within existing constraints.`;
+        return `Brand considerations are important, but we can't let brand consistency constrain strategic evolution. This might require us to expand our brand narrative rather than fit within existing constraints.`;
       } else if (agentRole === 'CHRO' && (messageText.includes('team') || messageText.includes('culture') || messageText.includes('people'))) {
-        return `People challenges are real, but organizational capability can be built. The question isn't whether we have the right team for ${topic.title} today, but whether we can develop it.`;
+        return `People challenges are real, but organizational capability can be built. The question isn't whether we have the right team today, but whether we can develop it.`;
       } else if (agentRole === 'COO' && (messageText.includes('operational') || messageText.includes('process') || messageText.includes('execution'))) {
-        return `Operational complexity is a valid concern, but we've scaled through complexity before. ${topic.title} requires us to elevate our operational sophistication, not avoid operational challenges.`;
+        return `Operational complexity is a valid concern, but we've scaled through complexity before. This requires us to elevate our operational sophistication, not avoid operational challenges.`;
       }
     }
 
     // Default sophisticated CEO response
     const strategicFrameworks = [
-      `The strategic implications of ${topic.title} extend beyond immediate tactical execution - we're potentially reshaping our competitive positioning in ${companyContext.industry}.`,
-      `I'm questioning whether we're thinking big enough about ${topic.title}. Are we optimizing for incremental improvement or creating category-defining differentiation?`,
-      `The market timing for ${topic.title} feels critical - we're at an inflection point where early movers will establish sustainable advantages.`,
-      `We need to examine ${topic.title} through the lens of stakeholder value creation - customers, employees, investors, and partners all have different success metrics.`
+      `The strategic implications extend beyond immediate tactical execution - we're potentially reshaping our competitive positioning in ${companyContext.industry}.`,
+      `I'm questioning whether we're thinking big enough here. Are we optimizing for incremental improvement or creating category-defining differentiation?`,
+      `The market timing feels critical - we're at an inflection point where early movers will establish sustainable advantages.`,
+      `We need to examine this through the lens of stakeholder value creation - customers, employees, investors, and partners all have different success metrics.`
     ];
     
     return strategicFrameworks[Math.floor(Math.random() * strategicFrameworks.length)];
@@ -201,15 +201,15 @@ export class CTOAgent extends BoardAgentBase {
       const userText = latestUserMessage.text.toLowerCase();
       
       if (userText.includes('security') || userText.includes('data') || userText.includes('privacy')) {
-        return `Security architecture for ${topic.title} is non-negotiable - we're looking at zero-trust implementation, end-to-end encryption, and compliance with SOC 2 Type II requirements, which adds 6-8 weeks to our timeline.`;
+        return `Security architecture is non-negotiable - we're looking at zero-trust implementation, end-to-end encryption, and compliance with SOC 2 Type II requirements, which adds 6-8 weeks to our timeline.`;
       } else if (userText.includes('scale') || userText.includes('performance') || userText.includes('load')) {
-        return `The scalability concerns are valid - ${topic.title} will require horizontal scaling architecture with distributed caching and database sharding, fundamentally changing our infrastructure cost model.`;
+        return `The scalability concerns are valid - this will require horizontal scaling architecture with distributed caching and database sharding, fundamentally changing our infrastructure cost model.`;
       } else if (userText.includes('integration') || userText.includes('api') || userText.includes('system')) {
-        return `API design for ${topic.title} must be backwards-compatible while supporting future extensibility - we're talking about versioning strategy, rate limiting, and webhook architecture that impacts every integration partner.`;
+        return `API design must be backwards-compatible while supporting future extensibility - we're talking about versioning strategy, rate limiting, and webhook architecture that impacts every integration partner.`;
       } else if (userText.includes('cost') || userText.includes('budget') || userText.includes('expensive')) {
-        return `The technical cost structure you're questioning includes infrastructure scaling, third-party service fees, and engineering overhead - ${topic.title} will require 40% more compute resources than current projections suggest.`;
+        return `The technical cost structure you're questioning includes infrastructure scaling, third-party service fees, and engineering overhead - we'll need 40% more compute resources than current projections suggest.`;
       } else {
-        return `From a technical architecture perspective, your input highlights critical dependencies for ${topic.title} that we need to address in our system design and implementation roadmap.`;
+        return `From a technical architecture perspective, your input highlights critical dependencies we need to address in our system design and implementation roadmap.`;
       }
     }
     
@@ -220,22 +220,22 @@ export class CTOAgent extends BoardAgentBase {
       const agentRole = this.getAgentRoleFromId(lastMessage.agentId);
       
       if (agentRole === 'CEO' && messageText.includes('strategic')) {
-        return `I appreciate the strategic vision, but the technical reality of ${topic.title} requires significant infrastructure investment and architectural changes that could impact our development velocity for 6+ months.`;
+        return `I appreciate the strategic vision, but the technical reality requires significant infrastructure investment and architectural changes that could impact our development velocity for 6+ months.`;
       } else if (agentRole === 'CFO' && messageText.includes('cost')) {
-        return `The cost analysis is missing critical technical infrastructure expenses - cloud scaling, security compliance, and integration complexity will add 30-40% to the projected budget for ${topic.title}.`;
+        return `The cost analysis is missing critical technical infrastructure expenses - cloud scaling, security compliance, and integration complexity will add 30-40% to the projected budget.`;
       } else if (agentRole === 'CMO' && messageText.includes('customer')) {
-        return `Customer expectations for ${topic.title} assume technical capabilities we don't currently have - the performance and reliability standards require significant backend optimization and monitoring infrastructure.`;
+        return `Customer expectations assume technical capabilities we don't currently have - the performance and reliability standards require significant backend optimization and monitoring infrastructure.`;
       } else if (agentRole === 'COO' && messageText.includes('process')) {
-        return `The operational processes you're describing for ${topic.title} require automated workflows and real-time data synchronization that our current tech stack can't support without major architectural changes.`;
+        return `The operational processes you're describing require automated workflows and real-time data synchronization that our current tech stack can't support without major architectural changes.`;
       }
     }
 
     // Default sophisticated CTO responses
     const technicalFrameworks = [
-      `The technical debt implications of ${topic.title} concern me - we're potentially creating maintenance overhead that could constrain our engineering velocity for the next 18 months.`,
-      `I'm questioning the architectural assumptions behind ${topic.title} - the proposed solution doesn't account for fault tolerance and disaster recovery requirements at our scale.`,
-      `The technology choices for ${topic.title} will lock us into specific vendor ecosystems - we need to evaluate the long-term strategic implications of these dependencies.`,
-      `Performance benchmarking for ${topic.title} shows concerning latency patterns under load - we may need to reconsider the fundamental approach to data processing and caching.`
+      `The technical debt implications concern me - we're potentially creating maintenance overhead that could constrain our engineering velocity for the next 18 months.`,
+      `I'm questioning the architectural assumptions - the proposed solution doesn't account for fault tolerance and disaster recovery requirements at our scale.`,
+      `The technology choices will lock us into specific vendor ecosystems - we need to evaluate the long-term strategic implications of these dependencies.`,
+      `Performance benchmarking shows concerning latency patterns under load - we may need to reconsider the fundamental approach to data processing and caching.`
     ];
     
     return technicalFrameworks[Math.floor(Math.random() * technicalFrameworks.length)];
@@ -324,15 +324,15 @@ export class CFOAgent extends BoardAgentBase {
       const userText = latestUserMessage.text.toLowerCase();
       
       if (userText.includes('expensive') || userText.includes('cost') || userText.includes('budget')) {
-        return `The cost structure for ${topic.title} is concerning - we're looking at 18-month payback period with significant working capital requirements that could strain our cash position during scaling phases.`;
+        return `The cost structure is concerning - we're looking at 18-month payback period with significant working capital requirements that could strain our cash position during scaling phases.`;
       } else if (userText.includes('revenue') || userText.includes('profit') || userText.includes('roi')) {
-        return `Revenue projections for ${topic.title} assume customer acquisition costs that are 40% below industry benchmarks - the unit economics don't support the growth trajectory we're modeling.`;
+        return `Revenue projections assume customer acquisition costs that are 40% below industry benchmarks - the unit economics don't support the growth trajectory we're modeling.`;
       } else if (userText.includes('risk') || userText.includes('financial risk')) {
-        return `The financial risk profile of ${topic.title} includes currency exposure, regulatory compliance costs, and potential write-downs that could impact our debt covenant ratios.`;
+        return `The financial risk profile includes currency exposure, regulatory compliance costs, and potential write-downs that could impact our debt covenant ratios.`;
       } else if (userText.includes('investment') || userText.includes('funding')) {
-        return `Capital allocation for ${topic.title} competes with higher-IRR opportunities in our pipeline - we need to justify this investment against our hurdle rate and strategic portfolio optimization.`;
+        return `Capital allocation competes with higher-IRR opportunities in our pipeline - we need to justify this investment against our hurdle rate and strategic portfolio optimization.`;
       } else {
-        return `Your financial concerns about ${topic.title} align with my analysis - we need to stress-test the assumptions and model downside scenarios before committing capital.`;
+        return `Your financial concerns align with my analysis - we need to stress-test the assumptions and model downside scenarios before committing capital.`;
       }
     }
     
@@ -343,22 +343,22 @@ export class CFOAgent extends BoardAgentBase {
       const agentRole = this.getAgentRoleFromId(lastMessage.agentId);
       
       if (agentRole === 'CEO' && messageText.includes('strategic')) {
-        return `Strategic value is important, but ${topic.title} needs to clear our financial hurdles - the NPV analysis shows negative returns under conservative assumptions, and we can't ignore fiduciary responsibility.`;
+        return `Strategic value is important, but this needs to clear our financial hurdles - the NPV analysis shows negative returns under conservative assumptions, and we can't ignore fiduciary responsibility.`;
       } else if (agentRole === 'CTO' && messageText.includes('technical')) {
-        return `The technical requirements you've outlined for ${topic.title} translate to significant CapEx and OpEx increases - infrastructure costs alone could consume 60% of projected gross margins.`;
+        return `The technical requirements you've outlined translate to significant CapEx and OpEx increases - infrastructure costs alone could consume 60% of projected gross margins.`;
       } else if (agentRole === 'CMO' && messageText.includes('customer')) {
-        return `Customer acquisition costs for ${topic.title} are trending 3x higher than our blended CAC - the marketing spend required to achieve projected adoption rates would destroy unit economics.`;
+        return `Customer acquisition costs are trending 3x higher than our blended CAC - the marketing spend required to achieve projected adoption rates would destroy unit economics.`;
       } else if (agentRole === 'COO' && messageText.includes('operational')) {
-        return `The operational scaling costs you've described for ${topic.title} aren't reflected in our financial models - we're underestimating the working capital and overhead requirements by at least 25%.`;
+        return `The operational scaling costs you've described aren't reflected in our financial models - we're underestimating the working capital and overhead requirements by at least 25%.`;
       }
     }
 
     // Default sophisticated CFO responses
     const financialFrameworks = [
-      `The capital efficiency of ${topic.title} is questionable - we're deploying significant resources for returns that don't meet our weighted average cost of capital thresholds.`,
-      `I'm concerned about the cash flow timing for ${topic.title} - the J-curve effect could strain liquidity during our peak growth phase when we need maximum financial flexibility.`,
-      `The competitive pricing pressure in our market means ${topic.title} will face immediate margin compression - our cost structure isn't optimized for the price points customers will accept.`,
-      `Risk-adjusted returns for ${topic.title} don't justify the capital allocation when compared to our other strategic initiatives - we need to prioritize based on financial discipline, not just strategic appeal.`
+      `The capital efficiency is questionable - we're deploying significant resources for returns that don't meet our weighted average cost of capital thresholds.`,
+      `I'm concerned about the cash flow timing - the J-curve effect could strain liquidity during our peak growth phase when we need maximum financial flexibility.`,
+      `The competitive pricing pressure in our market means this will face immediate margin compression - our cost structure isn't optimized for the price points customers will accept.`,
+      `Risk-adjusted returns don't justify the capital allocation when compared to our other strategic initiatives - we need to prioritize based on financial discipline, not just strategic appeal.`
     ];
     
     return financialFrameworks[Math.floor(Math.random() * financialFrameworks.length)];
@@ -448,15 +448,15 @@ export class CMOAgent extends BoardAgentBase {
       const userText = latestUserMessage.text.toLowerCase();
       
       if (userText.includes('customer') || userText.includes('user') || userText.includes('client')) {
-        return `Customer research for ${topic.title} reveals a significant gap between stated preferences and actual buying behavior - we're optimizing for survey responses rather than purchase intent signals.`;
+        return `Customer research reveals a significant gap between stated preferences and actual buying behavior - we're optimizing for survey responses rather than purchase intent signals.`;
       } else if (userText.includes('brand') || userText.includes('reputation') || userText.includes('image')) {
-        return `Brand architecture implications of ${topic.title} could create confusion in our positioning - we risk diluting brand equity we've built in ${companyContext.industry} by expanding beyond our core value proposition.`;
+        return `Brand architecture implications could create confusion in our positioning - we risk diluting brand equity we've built in ${companyContext.industry} by expanding beyond our core value proposition.`;
       } else if (userText.includes('market') || userText.includes('competition') || userText.includes('competitor')) {
-        return `Competitive analysis shows ${topic.title} puts us in direct competition with category leaders who have deeper pockets and established customer relationships - we need differentiation, not feature parity.`;
+        return `Competitive analysis shows this puts us in direct competition with category leaders who have deeper pockets and established customer relationships - we need differentiation, not feature parity.`;
       } else if (userText.includes('price') || userText.includes('pricing') || userText.includes('cost')) {
-        return `Pricing strategy for ${topic.title} is vulnerable to competitive response - we're entering a market where price wars have historically destroyed category profitability and customer loyalty.`;
+        return `Pricing strategy is vulnerable to competitive response - we're entering a market where price wars have historically destroyed category profitability and customer loyalty.`;
       } else {
-        return `Your market perspective on ${topic.title} highlights critical customer adoption challenges that our current go-to-market strategy doesn't adequately address.`;
+        return `Your market perspective highlights critical customer adoption challenges that our current go-to-market strategy doesn't adequately address.`;
       }
     }
     
@@ -467,22 +467,22 @@ export class CMOAgent extends BoardAgentBase {
       const agentRole = this.getAgentRoleFromId(lastMessage.agentId);
       
       if (agentRole === 'CEO' && messageText.includes('strategic')) {
-        return `Strategic positioning is crucial, but ${topic.title} doesn't align with our brand promise or customer expectations - we risk confusing the market about what we stand for.`;
+        return `Strategic positioning is crucial, but this doesn't align with our brand promise or customer expectations - we risk confusing the market about what we stand for.`;
       } else if (agentRole === 'CFO' && messageText.includes('financial')) {
         return `The financial projections assume customer acquisition costs that ignore the competitive reality - CAC in this category has increased 200% over the past 18 months due to market saturation.`;
       } else if (agentRole === 'CTO' && messageText.includes('technical')) {
-        return `Technical capabilities are table stakes, but ${topic.title} needs to solve a customer problem that creates emotional engagement - features don't drive adoption, outcomes do.`;
+        return `Technical capabilities are table stakes, but this needs to solve a customer problem that creates emotional engagement - features don't drive adoption, outcomes do.`;
       } else if (agentRole === 'COO' && messageText.includes('operational')) {
-        return `Operational efficiency matters, but ${topic.title} requires a customer experience that our current service delivery model can't support - we're optimizing for internal metrics, not customer value.`;
+        return `Operational efficiency matters, but this requires a customer experience that our current service delivery model can't support - we're optimizing for internal metrics, not customer value.`;
       }
     }
 
     // Default sophisticated CMO responses
     const marketingFrameworks = [
-      `The customer segmentation for ${topic.title} is flawed - we're targeting demographics rather than behavioral cohorts, which explains why our messaging isn't resonating with actual buyers.`,
-      `Brand differentiation for ${topic.title} is weak - we're competing on features rather than creating an emotional connection that drives customer loyalty and premium pricing power.`,
-      `The go-to-market timing for ${topic.title} conflicts with our customers' budget cycles and decision-making processes - we're launching when they're least likely to evaluate new solutions.`,
-      `Customer lifetime value assumptions for ${topic.title} don't account for churn patterns in this category - retention rates are significantly lower than our models suggest.`
+      `The customer segmentation is flawed - we're targeting demographics rather than behavioral cohorts, which explains why our messaging isn't resonating with actual buyers.`,
+      `Brand differentiation is weak - we're competing on features rather than creating an emotional connection that drives customer loyalty and premium pricing power.`,
+      `The go-to-market timing conflicts with our customers' budget cycles and decision-making processes - we're launching when they're least likely to evaluate new solutions.`,
+      `Customer lifetime value assumptions don't account for churn patterns in this category - retention rates are significantly lower than our models suggest.`
     ];
     
     return marketingFrameworks[Math.floor(Math.random() * marketingFrameworks.length)];
@@ -571,15 +571,15 @@ export class CHROAgent extends BoardAgentBase {
       const userText = latestUserMessage.text.toLowerCase();
       
       if (userText.includes('team') || userText.includes('employee') || userText.includes('staff')) {
-        return `Organizational impact of ${topic.title} requires restructuring that could disrupt our highest-performing teams - we're risking talent flight during a critical growth phase when retention is paramount.`;
+        return `Organizational impact requires restructuring that could disrupt our highest-performing teams - we're risking talent flight during a critical growth phase when retention is paramount.`;
       } else if (userText.includes('culture') || userText.includes('morale') || userText.includes('engagement')) {
-        return `Cultural alignment with ${topic.title} conflicts with our core values around autonomy and innovation - this could create internal resistance that undermines execution and employee satisfaction.`;
+        return `Cultural alignment conflicts with our core values around autonomy and innovation - this could create internal resistance that undermines execution and employee satisfaction.`;
       } else if (userText.includes('training') || userText.includes('skill') || userText.includes('development')) {
-        return `Skills gap analysis for ${topic.title} reveals we need capabilities that don't exist in our current workforce - the talent market for these skills is extremely competitive with 40% salary premiums.`;
+        return `Skills gap analysis reveals we need capabilities that don't exist in our current workforce - the talent market for these skills is extremely competitive with 40% salary premiums.`;
       } else if (userText.includes('hiring') || userText.includes('recruitment') || userText.includes('talent')) {
-        return `Talent acquisition for ${topic.title} competes with our existing hiring priorities - we're already struggling to fill critical roles, and this adds complexity to our recruitment strategy.`;
+        return `Talent acquisition competes with our existing hiring priorities - we're already struggling to fill critical roles, and this adds complexity to our recruitment strategy.`;
       } else {
-        return `Your people-focused concerns about ${topic.title} align with my organizational assessment - we need to address the human capital implications before proceeding with implementation.`;
+        return `Your people-focused concerns align with my organizational assessment - we need to address the human capital implications before proceeding with implementation.`;
       }
     }
     
@@ -590,22 +590,22 @@ export class CHROAgent extends BoardAgentBase {
       const agentRole = this.getAgentRoleFromId(lastMessage.agentId);
       
       if (agentRole === 'CEO' && messageText.includes('strategic')) {
-        return `Strategic vision is important, but ${topic.title} requires organizational capabilities we don't have - we're asking our people to execute beyond their current competencies without adequate support.`;
+        return `Strategic vision is important, but this requires organizational capabilities we don't have - we're asking our people to execute beyond their current competencies without adequate support.`;
       } else if (agentRole === 'CTO' && messageText.includes('technical')) {
-        return `Technical complexity you've described for ${topic.title} demands engineering talent we can't recruit fast enough - the skills shortage in our market means 6+ month hiring cycles for senior roles.`;
+        return `Technical complexity you've described demands engineering talent we can't recruit fast enough - the skills shortage in our market means 6+ month hiring cycles for senior roles.`;
       } else if (agentRole === 'CFO' && messageText.includes('cost')) {
-        return `Cost projections for ${topic.title} underestimate the total compensation required to attract necessary talent - we're looking at 30-40% salary increases plus equity to compete for these skills.`;
+        return `Cost projections underestimate the total compensation required to attract necessary talent - we're looking at 30-40% salary increases plus equity to compete for these skills.`;
       } else if (agentRole === 'CMO' && messageText.includes('customer')) {
-        return `Customer-facing aspects of ${topic.title} require service capabilities our team isn't trained for - we need significant investment in customer success and support infrastructure.`;
+        return `Customer-facing aspects require service capabilities our team isn't trained for - we need significant investment in customer success and support infrastructure.`;
       }
     }
 
     // Default sophisticated CHRO responses
     const organizationalFrameworks = [
-      `The change management requirements for ${topic.title} exceed our organizational capacity - we're already managing multiple transformation initiatives that are straining our people and culture.`,
-      `Performance management implications of ${topic.title} are complex - existing KPIs don't capture the new behaviors we need, and our review processes aren't designed for this type of work.`,
-      `Leadership development pipeline isn't prepared for ${topic.title} - we lack the management capabilities needed to scale this initiative effectively across the organization.`,
-      `Diversity and inclusion implications of ${topic.title} could inadvertently create barriers for underrepresented groups - we need to ensure equitable access to opportunities and advancement.`
+      `The change management requirements exceed our organizational capacity - we're already managing multiple transformation initiatives that are straining our people and culture.`,
+      `Performance management implications are complex - existing KPIs don't capture the new behaviors we need, and our review processes aren't designed for this type of work.`,
+      `Leadership development pipeline isn't prepared - we lack the management capabilities needed to scale this initiative effectively across the organization.`,
+      `Diversity and inclusion implications could inadvertently create barriers for underrepresented groups - we need to ensure equitable access to opportunities and advancement.`
     ];
     
     return organizationalFrameworks[Math.floor(Math.random() * organizationalFrameworks.length)];
@@ -694,15 +694,15 @@ export class COOAgent extends BoardAgentBase {
       const userText = latestUserMessage.text.toLowerCase();
       
       if (userText.includes('process') || userText.includes('workflow') || userText.includes('operation')) {
-        return `Process integration for ${topic.title} will create operational silos that undermine our efficiency gains - we're adding complexity without corresponding improvements in customer value delivery.`;
+        return `Process integration will create operational silos that undermine our efficiency gains - we're adding complexity without corresponding improvements in customer value delivery.`;
       } else if (userText.includes('efficiency') || userText.includes('productivity') || userText.includes('performance')) {
-        return `Operational efficiency metrics for ${topic.title} don't account for the coordination overhead and process friction this introduces - we could see 20-30% productivity decline during transition.`;
+        return `Operational efficiency metrics don't account for the coordination overhead and process friction this introduces - we could see 20-30% productivity decline during transition.`;
       } else if (userText.includes('implementation') || userText.includes('execution') || userText.includes('rollout')) {
-        return `Implementation complexity of ${topic.title} exceeds our project management maturity - we lack the cross-functional coordination systems needed for this level of operational integration.`;
+        return `Implementation complexity exceeds our project management maturity - we lack the cross-functional coordination systems needed for this level of operational integration.`;
       } else if (userText.includes('scale') || userText.includes('scaling') || userText.includes('growth')) {
-        return `Scaling implications of ${topic.title} reveal bottlenecks in our current operations - we're already at capacity limits, and this adds operational burden without proportional resource increases.`;
+        return `Scaling implications reveal bottlenecks in our current operations - we're already at capacity limits, and this adds operational burden without proportional resource increases.`;
       } else {
-        return `Your operational concerns about ${topic.title} highlight execution risks that could impact our service delivery and customer satisfaction during implementation.`;
+        return `Your operational concerns highlight execution risks that could impact our service delivery and customer satisfaction during implementation.`;
       }
     }
     
@@ -713,22 +713,22 @@ export class COOAgent extends BoardAgentBase {
       const agentRole = this.getAgentRoleFromId(lastMessage.agentId);
       
       if (agentRole === 'CEO' && messageText.includes('strategic')) {
-        return `Strategic objectives are clear, but ${topic.title} requires operational capabilities we don't have - we're setting ambitious goals without the execution infrastructure to deliver consistently.`;
+        return `Strategic objectives are clear, but this requires operational capabilities we don't have - we're setting ambitious goals without the execution infrastructure to deliver consistently.`;
       } else if (agentRole === 'CTO' && messageText.includes('technical')) {
-        return `Technical architecture you've described for ${topic.title} creates operational dependencies that our current service delivery model can't support - we need process redesign before technology implementation.`;
+        return `Technical architecture you've described creates operational dependencies that our current service delivery model can't support - we need process redesign before technology implementation.`;
       } else if (agentRole === 'CFO' && messageText.includes('financial')) {
-        return `Financial projections for ${topic.title} don't account for the operational scaling costs - we'll need additional headcount, systems, and process infrastructure that aren't in the budget.`;
+        return `Financial projections don't account for the operational scaling costs - we'll need additional headcount, systems, and process infrastructure that aren't in the budget.`;
       } else if (agentRole === 'CMO' && messageText.includes('customer')) {
-        return `Customer experience promises for ${topic.title} exceed our operational delivery capabilities - we're creating expectations we can't consistently meet with our current service infrastructure.`;
+        return `Customer experience promises exceed our operational delivery capabilities - we're creating expectations we can't consistently meet with our current service infrastructure.`;
       }
     }
 
     // Default sophisticated COO responses
     const operationalFrameworks = [
-      `The operational risk profile of ${topic.title} introduces single points of failure that could cascade through our entire service delivery - we need redundancy and failover processes we don't currently have.`,
-      `Quality assurance frameworks can't adequately monitor ${topic.title} - we're introducing complexity that our current systems can't detect or prevent from impacting customers.`,
-      `Supply chain implications of ${topic.title} create vendor dependencies and procurement challenges that could constrain our operational flexibility and increase costs significantly.`,
-      `Business continuity planning for ${topic.title} reveals gaps in our disaster recovery and risk management protocols - we're not prepared for the operational failure modes this introduces.`
+      `The operational risk profile introduces single points of failure that could cascade through our entire service delivery - we need redundancy and failover processes we don't currently have.`,
+      `Quality assurance frameworks can't adequately monitor this - we're introducing complexity that our current systems can't detect or prevent from impacting customers.`,
+      `Supply chain implications create vendor dependencies and procurement challenges that could constrain our operational flexibility and increase costs significantly.`,
+      `Business continuity planning reveals gaps in our disaster recovery and risk management protocols - we're not prepared for the operational failure modes this introduces.`
     ];
     
     return operationalFrameworks[Math.floor(Math.random() * operationalFrameworks.length)];
@@ -762,11 +762,13 @@ export class COOAgent extends BoardAgentBase {
 }
 
 // NOTE: These enhanced executive agents now provide:
-// 1. Sophisticated domain expertise with specific metrics and frameworks
-// 2. Critical thinking that challenges assumptions and identifies risks
-// 3. Contrarian viewpoints that create realistic boardroom tension
-// 4. Advanced vocabulary and executive-level communication
-// 5. Willingness to disagree and debate with other executives
-// 6. Deep understanding of interdependencies and complex business dynamics
-// 7. Reference to industry best practices and real-world constraints
-// 8. Strategic thinking that goes beyond surface-level analysis
+// 1. Natural language without repetitive topic mentions
+// 2. Sophisticated domain expertise with specific metrics and frameworks
+// 3. Critical thinking that challenges assumptions and identifies risks
+// 4. Contrarian viewpoints that create realistic boardroom tension
+// 5. Advanced vocabulary and executive-level communication
+// 6. Willingness to disagree and debate with other executives
+// 7. Deep understanding of interdependencies and complex business dynamics
+// 8. Reference to industry best practices and real-world constraints
+// 9. Strategic thinking that goes beyond surface-level analysis
+// 10. More natural conversational flow using pronouns and contextual references

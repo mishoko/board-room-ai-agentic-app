@@ -83,7 +83,7 @@ Discussion Topic: "${topic.title}"
 - Description: ${topic.description}
 - Priority: ${topic.priority}
 
-Generate ${responseCount} sophisticated, executive-level responses that demonstrate deep expertise and critical thinking. Each response should:
+CRITICAL: Generate ${responseCount} sophisticated, executive-level responses that demonstrate deep expertise and critical thinking. Each response should:
 
 1. Show advanced domain knowledge specific to your role
 2. Challenge assumptions or present contrarian viewpoints when appropriate
@@ -96,10 +96,22 @@ Generate ${responseCount} sophisticated, executive-level responses that demonstr
 9. Be 2-3 sentences long with sophisticated vocabulary
 10. Demonstrate the strategic thinking expected at the C-suite level
 
-Examples of the sophistication expected:
-- CEO: "While I appreciate the revenue projections, we're overlooking the customer acquisition cost implications and potential cannibalization of our core product line."
-- CTO: "The proposed architecture introduces significant technical debt and doesn't account for our upcoming migration to microservices."
-- CFO: "The IRR calculations are flawed because they don't factor in the opportunity cost of capital or the working capital requirements during scaling."
+IMPORTANT LANGUAGE GUIDELINES:
+- NEVER repeat the topic title "${topic.title}" in your responses
+- Use natural pronouns like "this", "it", "the initiative", "the proposal", "our approach"
+- Speak as if you're in an ongoing conversation, not introducing the topic
+- Use contextual references instead of explicit topic mentions
+- Make responses flow naturally as part of a boardroom discussion
+
+Examples of natural language (GOOD):
+- "The financial projections don't account for customer acquisition costs and market saturation."
+- "I'm concerned about the technical architecture implications of this initiative."
+- "The proposed solution introduces significant complexity that our team isn't equipped to handle."
+
+Examples to AVOID (BAD):
+- "The financial projections for [topic name] don't account for..."
+- "I'm concerned about [topic name] and its technical implications..."
+- "[Topic name] introduces significant complexity..."
 
 Format as JSON array: ["Response 1", "Response 2", ...]
 
@@ -141,7 +153,7 @@ Responses:`;
         .replace(/{company}/g, company)
         .replace(/{industry}/g, industry)
         .replace(/{stage}/g, stage)
-        .replace(/{topic}/g, topic)
+        .replace(/{topic}/g, 'this initiative')
         .replace(/{challenges}/g, challenges)
         .replace(/{goals}/g, goals);
       
@@ -154,88 +166,88 @@ Responses:`;
   private getAdvancedResponseTemplatesByRole(role: string): string[] {
     const templates: { [key: string]: string[] } = {
       'CEO': [
-        "I'm concerned we're approaching {topic} with tunnel vision - the market dynamics in {industry} suggest we need to consider the competitive response and potential for commoditization.",
-        "The strategic implications of {topic} extend beyond our immediate goals; we risk creating organizational complexity that could undermine our {stage} advantages and dilute our core value proposition.",
-        "While {topic} aligns with our vision, I question whether we have the execution capabilities and market timing right - premature scaling has killed more companies at our stage than lack of innovation.",
-        "The board will scrutinize the capital allocation for {topic} against our other strategic priorities; we need to demonstrate clear differentiation and sustainable competitive moats.",
-        "I'm seeing red flags in how we're framing {topic} - we're solving for symptoms rather than root causes, which typically leads to expensive pivots down the road.",
-        "The regulatory landscape in {industry} is shifting rapidly; {topic} could expose us to compliance risks that haven't been adequately stress-tested in our scenario planning.",
-        "Our stakeholder alignment on {topic} is fragmented - investors, customers, and employees have conflicting expectations that we haven't reconciled strategically.",
-        "The opportunity cost of pursuing {topic} means deprioritizing initiatives that could deliver faster ROI and strengthen our market position more effectively.",
-        "I'm challenging the fundamental assumptions behind {topic} - are we building what the market needs or what we think it should need?",
-        "The timing for {topic} feels reactive rather than strategic; we're responding to competitive pressure instead of creating our own market category.",
-        "We need to examine whether {topic} creates genuine customer value or just feature parity - differentiation in {industry} requires bold, contrarian bets.",
-        "The cultural implications of {topic} could fundamentally alter our organizational DNA; we must ensure this aligns with the company we aspire to become."
+        "I'm concerned we're approaching this with tunnel vision - the market dynamics in {industry} suggest we need to consider the competitive response and potential for commoditization.",
+        "The strategic implications extend beyond our immediate goals; we risk creating organizational complexity that could undermine our {stage} advantages and dilute our core value proposition.",
+        "While this aligns with our vision, I question whether we have the execution capabilities and market timing right - premature scaling has killed more companies at our stage than lack of innovation.",
+        "The board will scrutinize the capital allocation against our other strategic priorities; we need to demonstrate clear differentiation and sustainable competitive moats.",
+        "I'm seeing red flags in how we're framing this - we're solving for symptoms rather than root causes, which typically leads to expensive pivots down the road.",
+        "The regulatory landscape in {industry} is shifting rapidly; this could expose us to compliance risks that haven't been adequately stress-tested in our scenario planning.",
+        "Our stakeholder alignment is fragmented - investors, customers, and employees have conflicting expectations that we haven't reconciled strategically.",
+        "The opportunity cost of pursuing this means deprioritizing initiatives that could deliver faster ROI and strengthen our market position more effectively.",
+        "I'm challenging the fundamental assumptions here - are we building what the market needs or what we think it should need?",
+        "The timing feels reactive rather than strategic; we're responding to competitive pressure instead of creating our own market category.",
+        "We need to examine whether this creates genuine customer value or just feature parity - differentiation in {industry} requires bold, contrarian bets.",
+        "The cultural implications could fundamentally alter our organizational DNA; we must ensure this aligns with the company we aspire to become."
       ],
       'CTO': [
-        "The technical architecture for {topic} introduces significant complexity that our current engineering team isn't equipped to handle - we're looking at 18+ months of technical debt accumulation.",
-        "I'm concerned about the scalability assumptions in {topic}; our infrastructure can't support the projected load without a complete re-architecture of our core systems.",
-        "The security implications of {topic} haven't been thoroughly vetted - we're potentially exposing attack vectors that could compromise our entire platform integrity.",
-        "Our technology stack is already fragmented; {topic} would require integrating disparate systems that weren't designed for interoperability, creating maintenance nightmares.",
-        "The performance benchmarks for {topic} are unrealistic given our current database architecture - we'd need to migrate to a distributed system, which is a 12-month project minimum.",
-        "I'm questioning whether we're over-engineering {topic} - the technical complexity doesn't justify the business value, and simpler solutions might deliver 80% of the benefit.",
-        "The third-party dependencies for {topic} create vendor lock-in risks that could constrain our future architectural decisions and increase operational costs significantly.",
-        "Our DevOps pipeline isn't mature enough to support the deployment complexity of {topic} - we need to invest in infrastructure automation before attempting this initiative.",
-        "The data privacy requirements for {topic} conflict with our current data architecture; compliance would require rebuilding our entire data governance framework.",
-        "I'm seeing fundamental flaws in the technical specifications for {topic} - the proposed solution doesn't account for edge cases that represent 30% of our user scenarios.",
-        "The API design for {topic} violates several architectural principles we've established; this could fragment our platform and create integration challenges for partners.",
-        "We're underestimating the technical risk of {topic} - the failure modes could cascade through our entire system, potentially causing extended outages."
+        "The technical architecture introduces significant complexity that our current engineering team isn't equipped to handle - we're looking at 18+ months of technical debt accumulation.",
+        "I'm concerned about the scalability assumptions; our infrastructure can't support the projected load without a complete re-architecture of our core systems.",
+        "The security implications haven't been thoroughly vetted - we're potentially exposing attack vectors that could compromise our entire platform integrity.",
+        "Our technology stack is already fragmented; this would require integrating disparate systems that weren't designed for interoperability, creating maintenance nightmares.",
+        "The performance benchmarks are unrealistic given our current database architecture - we'd need to migrate to a distributed system, which is a 12-month project minimum.",
+        "I'm questioning whether we're over-engineering this - the technical complexity doesn't justify the business value, and simpler solutions might deliver 80% of the benefit.",
+        "The third-party dependencies create vendor lock-in risks that could constrain our future architectural decisions and increase operational costs significantly.",
+        "Our DevOps pipeline isn't mature enough to support the deployment complexity - we need to invest in infrastructure automation before attempting this initiative.",
+        "The data privacy requirements conflict with our current data architecture; compliance would require rebuilding our entire data governance framework.",
+        "I'm seeing fundamental flaws in the technical specifications - the proposed solution doesn't account for edge cases that represent 30% of our user scenarios.",
+        "The API design violates several architectural principles we've established; this could fragment our platform and create integration challenges for partners.",
+        "We're underestimating the technical risk - the failure modes could cascade through our entire system, potentially causing extended outages."
       ],
       'CFO': [
-        "The financial modeling for {topic} is fundamentally flawed - the revenue projections don't account for customer acquisition cost inflation and market saturation dynamics.",
-        "I'm seeing concerning cash flow implications in {topic}; the working capital requirements during scaling could strain our liquidity position beyond acceptable risk thresholds.",
-        "The unit economics of {topic} don't improve with scale as projected - we're facing a contribution margin trap that could erode profitability across our entire portfolio.",
-        "Our capital allocation framework suggests {topic} has a negative NPV when properly risk-adjusted; we're essentially subsidizing growth that destroys shareholder value.",
-        "The competitive pricing pressure in {industry} means {topic} will face immediate margin compression - our cost structure isn't optimized for the price points market demands.",
-        "I'm questioning the revenue recognition implications of {topic} - the accounting treatment could smooth reported earnings but create audit risks and investor skepticism.",
-        "The operational leverage assumptions in {topic} are overly optimistic; fixed cost absorption won't improve as dramatically as modeled, limiting profitability upside.",
-        "We're underestimating the total cost of ownership for {topic} - maintenance, support, and upgrade costs could consume 40% of projected revenues over the lifecycle.",
-        "The foreign exchange exposure from {topic} creates hedging complexities that could introduce earnings volatility and complicate our financial reporting.",
-        "I'm concerned about the working capital cycle for {topic} - extended payment terms with enterprise customers could create cash flow timing mismatches.",
-        "The tax implications of {topic} haven't been properly structured; we could face double taxation issues that significantly impact after-tax returns.",
-        "Our debt covenants may be triggered by the capital requirements of {topic} - we need to renegotiate credit facilities before proceeding with this initiative."
+        "The financial modeling is fundamentally flawed - the revenue projections don't account for customer acquisition cost inflation and market saturation dynamics.",
+        "I'm seeing concerning cash flow implications; the working capital requirements during scaling could strain our liquidity position beyond acceptable risk thresholds.",
+        "The unit economics don't improve with scale as projected - we're facing a contribution margin trap that could erode profitability across our entire portfolio.",
+        "Our capital allocation framework suggests this has a negative NPV when properly risk-adjusted; we're essentially subsidizing growth that destroys shareholder value.",
+        "The competitive pricing pressure in {industry} means this will face immediate margin compression - our cost structure isn't optimized for the price points market demands.",
+        "I'm questioning the revenue recognition implications - the accounting treatment could smooth reported earnings but create audit risks and investor skepticism.",
+        "The operational leverage assumptions are overly optimistic; fixed cost absorption won't improve as dramatically as modeled, limiting profitability upside.",
+        "We're underestimating the total cost of ownership - maintenance, support, and upgrade costs could consume 40% of projected revenues over the lifecycle.",
+        "The foreign exchange exposure creates hedging complexities that could introduce earnings volatility and complicate our financial reporting.",
+        "I'm concerned about the working capital cycle - extended payment terms with enterprise customers could create cash flow timing mismatches.",
+        "The tax implications haven't been properly structured; we could face double taxation issues that significantly impact after-tax returns.",
+        "Our debt covenants may be triggered by the capital requirements - we need to renegotiate credit facilities before proceeding with this initiative."
       ],
       'CMO': [
-        "The brand positioning for {topic} conflicts with our established market perception - we risk confusing customers and diluting the brand equity we've built in {industry}.",
-        "I'm seeing fundamental flaws in the customer segmentation for {topic} - we're targeting demographics that don't align with our core value proposition or buying behavior patterns.",
-        "The competitive differentiation in {topic} is weak; we're essentially creating feature parity rather than category-defining innovation that commands premium pricing.",
-        "Our customer acquisition channels aren't optimized for {topic} - the CAC:LTV ratios suggest we'll be burning cash on unprofitable customer segments.",
-        "The messaging strategy for {topic} lacks emotional resonance; we're leading with features rather than outcomes, which historically underperforms in our market.",
-        "I'm concerned about cannibalization effects from {topic} - we could be stealing share from our higher-margin products without expanding the total addressable market.",
-        "The go-to-market timeline for {topic} conflicts with our seasonal buying patterns; launching during our customers' budget freeze periods will limit adoption velocity.",
-        "Our brand architecture can't support {topic} without creating confusion in the market - we need a clear product hierarchy that customers can navigate intuitively.",
-        "The customer research for {topic} is based on stated preferences rather than revealed behavior - actual adoption patterns could differ significantly from survey responses.",
-        "I'm questioning whether {topic} solves a real customer pain point or creates a solution looking for a problem - the market validation feels insufficient.",
-        "The pricing strategy for {topic} doesn't account for competitive response; we're vulnerable to price wars that could commoditize the entire category.",
-        "Our marketing attribution models can't accurately measure {topic}'s impact on customer lifetime value - we're flying blind on ROI optimization."
+        "The brand positioning conflicts with our established market perception - we risk confusing customers and diluting the brand equity we've built in {industry}.",
+        "I'm seeing fundamental flaws in the customer segmentation - we're targeting demographics that don't align with our core value proposition or buying behavior patterns.",
+        "The competitive differentiation is weak; we're essentially creating feature parity rather than category-defining innovation that commands premium pricing.",
+        "Our customer acquisition channels aren't optimized for this - the CAC:LTV ratios suggest we'll be burning cash on unprofitable customer segments.",
+        "The messaging strategy lacks emotional resonance; we're leading with features rather than outcomes, which historically underperforms in our market.",
+        "I'm concerned about cannibalization effects - we could be stealing share from our higher-margin products without expanding the total addressable market.",
+        "The go-to-market timeline conflicts with our seasonal buying patterns; launching during our customers' budget freeze periods will limit adoption velocity.",
+        "Our brand architecture can't support this without creating confusion in the market - we need a clear product hierarchy that customers can navigate intuitively.",
+        "The customer research is based on stated preferences rather than revealed behavior - actual adoption patterns could differ significantly from survey responses.",
+        "I'm questioning whether this solves a real customer pain point or creates a solution looking for a problem - the market validation feels insufficient.",
+        "The pricing strategy doesn't account for competitive response; we're vulnerable to price wars that could commoditize the entire category.",
+        "Our marketing attribution models can't accurately measure the impact on customer lifetime value - we're flying blind on ROI optimization."
       ],
       'CHRO': [
-        "The organizational design implications of {topic} require restructuring that could disrupt our high-performing teams and create talent retention risks we can't afford.",
-        "I'm concerned about the skills gap for {topic} - our current workforce lacks the competencies needed, and the talent market for these skills is extremely competitive.",
-        "The cultural change required for {topic} conflicts with our core values and could create internal resistance that undermines execution and employee engagement.",
-        "Our compensation philosophy doesn't align with the talent requirements for {topic} - we'd need to restructure our entire rewards framework to attract necessary expertise.",
-        "The performance management implications of {topic} are complex; existing KPIs don't capture the new behaviors and outcomes we need to drive success.",
-        "I'm seeing potential legal and compliance risks in {topic} - the employment law implications haven't been thoroughly vetted, especially for multi-jurisdictional operations.",
-        "The change management requirements for {topic} exceed our organizational capacity; we're already managing multiple transformation initiatives that are straining our people.",
-        "Our leadership development pipeline isn't prepared for {topic} - we lack the management capabilities needed to scale this initiative effectively across the organization.",
-        "The diversity and inclusion implications of {topic} could inadvertently create barriers for underrepresented groups, conflicting with our DEI commitments and goals.",
-        "I'm questioning whether our organizational culture can support {topic} - the collaborative behaviors required don't align with our current incentive structures.",
-        "The employee value proposition for {topic} is unclear; we haven't articulated how this benefits our workforce or aligns with their career development aspirations.",
-        "Our succession planning doesn't account for the leadership requirements of {topic} - we're creating key person dependencies that increase organizational risk."
+        "The organizational design implications require restructuring that could disrupt our high-performing teams and create talent retention risks we can't afford.",
+        "I'm concerned about the skills gap - our current workforce lacks the competencies needed, and the talent market for these skills is extremely competitive.",
+        "The cultural change required conflicts with our core values and could create internal resistance that undermines execution and employee engagement.",
+        "Our compensation philosophy doesn't align with the talent requirements - we'd need to restructure our entire rewards framework to attract necessary expertise.",
+        "The performance management implications are complex; existing KPIs don't capture the new behaviors and outcomes we need to drive success.",
+        "I'm seeing potential legal and compliance risks - the employment law implications haven't been thoroughly vetted, especially for multi-jurisdictional operations.",
+        "The change management requirements exceed our organizational capacity; we're already managing multiple transformation initiatives that are straining our people.",
+        "Our leadership development pipeline isn't prepared - we lack the management capabilities needed to scale this initiative effectively across the organization.",
+        "The diversity and inclusion implications could inadvertently create barriers for underrepresented groups, conflicting with our DEI commitments and goals.",
+        "I'm questioning whether our organizational culture can support this - the collaborative behaviors required don't align with our current incentive structures.",
+        "The employee value proposition is unclear; we haven't articulated how this benefits our workforce or aligns with their career development aspirations.",
+        "Our succession planning doesn't account for the leadership requirements - we're creating key person dependencies that increase organizational risk."
       ],
       'COO': [
-        "The operational complexity of {topic} will strain our process maturity and quality systems - we're not equipped to maintain service levels during this transition.",
-        "I'm seeing significant supply chain risks in {topic} - our vendor relationships and procurement processes aren't designed for the scale and complexity this requires.",
-        "The process integration challenges for {topic} could create operational silos that undermine our efficiency gains and customer experience consistency.",
-        "Our quality assurance frameworks can't adequately test {topic} - we're introducing failure modes that our current monitoring and alerting systems won't detect.",
-        "The capacity planning for {topic} is based on linear scaling assumptions that don't reflect operational realities - we'll hit bottlenecks that constrain growth.",
-        "I'm concerned about the business continuity implications of {topic} - our disaster recovery and risk management protocols need complete overhaul to accommodate this complexity.",
-        "The operational metrics for {topic} don't align with our existing KPI framework - we'll lose visibility into performance drivers and early warning indicators.",
-        "Our service delivery model isn't optimized for {topic} - customer support, implementation, and success functions will require significant restructuring and training.",
-        "The regulatory compliance burden of {topic} will overwhelm our current audit and control systems - we need substantial investment in governance infrastructure.",
-        "I'm questioning the operational feasibility of {topic} given our current resource constraints - we're already operating at capacity limits across multiple functions.",
-        "The cross-functional coordination required for {topic} exceeds our project management maturity - we lack the systems and processes for this level of complexity.",
-        "Our operational risk profile changes dramatically with {topic} - we're introducing single points of failure that could cascade through our entire service delivery."
+        "The operational complexity will strain our process maturity and quality systems - we're not equipped to maintain service levels during this transition.",
+        "I'm seeing significant supply chain risks - our vendor relationships and procurement processes aren't designed for the scale and complexity this requires.",
+        "The process integration challenges could create operational silos that undermine our efficiency gains and customer experience consistency.",
+        "Our quality assurance frameworks can't adequately test this - we're introducing failure modes that our current monitoring and alerting systems won't detect.",
+        "The capacity planning is based on linear scaling assumptions that don't reflect operational realities - we'll hit bottlenecks that constrain growth.",
+        "I'm concerned about the business continuity implications - our disaster recovery and risk management protocols need complete overhaul to accommodate this complexity.",
+        "The operational metrics don't align with our existing KPI framework - we'll lose visibility into performance drivers and early warning indicators.",
+        "Our service delivery model isn't optimized for this - customer support, implementation, and success functions will require significant restructuring and training.",
+        "The regulatory compliance burden will overwhelm our current audit and control systems - we need substantial investment in governance infrastructure.",
+        "I'm questioning the operational feasibility given our current resource constraints - we're already operating at capacity limits across multiple functions.",
+        "The cross-functional coordination required exceeds our project management maturity - we lack the systems and processes for this level of complexity.",
+        "Our operational risk profile changes dramatically - we're introducing single points of failure that could cascade through our entire service delivery."
       ]
     };
 
@@ -247,11 +259,11 @@ Responses:`;
     const stage = companyContext.stage || 'current stage';
     
     const fallbacks = [
-      `As ${role}, I'm challenging the fundamental assumptions behind ${topicTitle} - we need to ensure we're solving the right problem before committing resources.`,
-      `The strategic implications of ${topicTitle} in the ${industry} sector require deeper analysis of competitive dynamics and market timing.`,
-      `I'm concerned about the execution risks of ${topicTitle} given our ${stage} position - we need to stress-test our capabilities against the requirements.`,
-      `The interdependencies between ${topicTitle} and our existing initiatives haven't been properly mapped - we risk creating organizational complexity.`,
-      `From my experience in ${industry}, ${topicTitle} could expose us to risks that aren't immediately apparent in our current analysis.`
+      `As ${role}, I'm challenging the fundamental assumptions here - we need to ensure we're solving the right problem before committing resources.`,
+      `The strategic implications in the ${industry} sector require deeper analysis of competitive dynamics and market timing.`,
+      `I'm concerned about the execution risks given our ${stage} position - we need to stress-test our capabilities against the requirements.`,
+      `The interdependencies with our existing initiatives haven't been properly mapped - we risk creating organizational complexity.`,
+      `From my experience in ${industry}, this could expose us to risks that aren't immediately apparent in our current analysis.`
     ];
 
     const responses: string[] = [];
