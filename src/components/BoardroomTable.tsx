@@ -27,6 +27,8 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   const [currentMessages, setCurrentMessages] = useState<{[key: string]: string}>({});
   const [topicState, setTopicState] = useState<TopicState | null>(null);
   const [messageDurations, setMessageDurations] = useState<{[key: string]: number}>({});
+  const [isInterrupted, setIsInterrupted] = useState(false); // Track if conversation was interrupted
+  const [conversationContext, setConversationContext] = useState<Message[]>([]); // Store full conversation context
 
   // Calculate display duration based on message length
   const calculateMessageDuration = (message: string): number => {
@@ -61,6 +63,8 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       setCurrentMessages({});
       setActiveMembers([]);
       setMessageDurations({});
+      setIsInterrupted(false);
+      setConversationContext([]);
       
       // Register completion callback
       if (state && onTopicStateChange) {
@@ -72,7 +76,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     }
   }, [currentTopic?.id, stateManager, onTopicStateChange]);
 
-  // Enhanced conversation system with state manager integration and dynamic durations
+  // Enhanced conversation system with interrupt handling
   useEffect(() => {
     if (isPaused || isInterrupting || agents.length === 0 || !currentTopic || !stateManager) return;
     
@@ -87,6 +91,10 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
         return;
       }
 
+      // Get all messages for this topic to maintain context
+      const allMessages = stateManager.getTopicMessages(currentTopic.id);
+      setConversationContext(allMessages);
+
       // Select a random agent to speak
       const availableAgents = agents.filter(agent => agent.getAgent().isActive);
       if (availableAgents.length === 0) return;
@@ -94,15 +102,17 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       const randomAgent = availableAgents[Math.floor(Math.random() * availableAgents.length)];
       
       // Check if agent should respond based on context
-      const recentMessages = stateManager.getTopicMessages(currentTopic.id).slice(-3);
+      const recentMessages = allMessages.slice(-5); // Get last 5 messages for context
       const shouldRespond = randomAgent.shouldRespond(recentMessages, currentTopic);
       
       if (shouldRespond) {
         try {
-          // Generate contextual response
+          // Generate contextual response based on full conversation history
           const response = await randomAgent.generateResponse('', {
-            recentMessages,
-            topic: currentTopic
+            recentMessages: allMessages, // Pass ALL messages for full context
+            topic: currentTopic,
+            // Include user input context if conversation was interrupted
+            userInput: isInterrupted ? 'Consider the user input and adjust the discussion accordingly' : undefined
           });
           
           // Calculate duration for this specific message
@@ -161,7 +171,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [isPaused, isInterrupting, agents, currentTopic, stateManager]);
+  }, [isPaused, isInterrupting, agents, currentTopic, stateManager, isInterrupted]);
 
   const handlePauseToggle = () => {
     setIsPaused(!isPaused);
@@ -194,6 +204,28 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       const updatedState = stateManager.getTopicState(currentTopic.id);
       setTopicState(updatedState);
       
+      // Mark conversation as interrupted - this changes agent behavior
+      setIsInterrupted(true);
+      
+      // Clear any pre-generated responses for all agents since context has changed
+      agents.forEach(agent => {
+        if (agent.setTopicResponses) {
+          agent.setTopicResponses([]); // Clear pre-generated responses
+        }
+      });
+      
+      // Get all conversation messages including the new user message
+      const allMessages = stateManager.getTopicMessages(currentTopic.id);
+      
+      // Update all agents with the new conversation context
+      agents.forEach(agent => {
+        allMessages.forEach(msg => {
+          if (!agent.getConversationHistory().find(histMsg => histMsg.id === msg.id)) {
+            agent.addToHistory(msg);
+          }
+        });
+      });
+      
       if (onUserMessage) {
         onUserMessage(userMessage);
       }
@@ -201,6 +233,8 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       setUserMessage('');
       setIsInterrupting(false);
       setIsPaused(false);
+      
+      console.log('User interrupted conversation. Agents will now respond contextually to:', userMessage);
     }
   };
 
@@ -242,6 +276,15 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             }
           `}>
             {isInterrupting ? 'Waiting for your input...' : 'Conversation paused'}
+          </div>
+        </div>
+      )}
+
+      {/* Interrupt Status Indicator */}
+      {isInterrupted && !isInterrupting && (
+        <div className="absolute top-16 right-4 z-20">
+          <div className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200">
+            Discussion adapted to your input
           </div>
         </div>
       )}
@@ -360,6 +403,12 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
               <h3 className="text-lg font-semibold text-white">Add Your Comment</h3>
             </div>
             
+            <div className="mb-4 p-3 bg-slate-700/50 rounded-lg">
+              <p className="text-sm text-slate-300">
+                Your input will change the direction of the discussion. The agents will consider your comment and adapt their responses accordingly.
+              </p>
+            </div>
+            
             <textarea
               value={userMessage}
               onChange={(e) => setUserMessage(e.target.value)}
@@ -388,7 +437,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
                 `}
               >
                 <Send className="w-4 h-4" />
-                Send
+                Send & Redirect Discussion
               </button>
             </div>
           </div>
