@@ -24,6 +24,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const [newGoal, setNewGoal] = useState('');
   const [isGeneratingResponses, setIsGeneratingResponses] = useState(false);
   const [hoveredExpertise, setHoveredExpertise] = useState<{agentRole: string, expertise: string[]} | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string[] }>({});
+  const [showValidation, setShowValidation] = useState(false);
 
   // Original creative executive templates with the Chief Vibe Coding Officer and others
   const availableAgents: Omit<Agent, 'id' | 'isActive'>[] = [
@@ -172,10 +174,27 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     setTopics(prev => prev.map(topic => 
       topic.id === id ? { ...topic, ...updates } : topic
     ));
+    
+    // Clear validation errors when user updates the topic
+    if (validationErrors[id]) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
+    }
   };
 
   const removeTopic = (id: string) => {
     setTopics(prev => prev.filter(topic => topic.id !== id));
+    // Clear validation errors for removed topic
+    if (validationErrors[id]) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
+    }
   };
 
   const addToList = (field: 'challenges' | 'goals', value: string) => {
@@ -242,12 +261,22 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     };
   };
 
-  // Get validation status for all topics
-  const getTopicValidations = () => {
-    return topics.map(topic => ({
-      id: topic.id,
-      ...validateTopic(topic)
-    }));
+  // Validate all topics and update validation state
+  const validateAllTopics = () => {
+    const errors: { [key: string]: string[] } = {};
+    let hasErrors = false;
+    
+    topics.forEach(topic => {
+      const validation = validateTopic(topic);
+      if (!validation.isValid) {
+        errors[topic.id] = validation.issues;
+        hasErrors = true;
+      }
+    });
+    
+    setValidationErrors(errors);
+    setShowValidation(true);
+    return !hasErrors;
   };
 
   const canProceed = () => {
@@ -255,16 +284,31 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
       case 'agents':
         return selectedAgents.length >= 2;
       case 'topics':
-        const validations = getTopicValidations();
-        return topics.length > 0 && 
-               topics.every(topic => topic.title.trim()) && 
-               validations.every(v => v.isValid);
+        return topics.length > 0 && topics.every(topic => topic.title.trim());
       case 'context':
         return companyContext.name.trim() && companyContext.industry.trim();
       case 'review':
         return true;
       default:
         return false;
+    }
+  };
+
+  const handleNextStep = () => {
+    // Special validation for topics step
+    if (currentStep === 'topics') {
+      const isValid = validateAllTopics();
+      if (!isValid) {
+        return; // Don't proceed if validation fails
+      }
+    }
+    
+    // Proceed to next step
+    const steps = ['agents', 'topics', 'context', 'review'];
+    const currentIndex = steps.indexOf(currentStep);
+    if (currentIndex < steps.length - 1) {
+      setCurrentStep(steps[currentIndex + 1] as typeof currentStep);
+      setShowValidation(false); // Reset validation display
     }
   };
 
@@ -423,8 +467,6 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   );
 
   const renderTopicSetup = () => {
-    const topicValidations = getTopicValidations();
-    
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -435,12 +477,11 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
 
         <div className="space-y-6">
           {topics.map((topic, index) => {
-            const validation = topicValidations.find(v => v.id === topic.id);
-            const hasIssues = validation && !validation.isValid;
+            const hasErrors = showValidation && validationErrors[topic.id];
             
             return (
               <div key={topic.id} className={`bg-slate-800/50 rounded-xl p-6 border shadow-lg ${
-                hasIssues ? 'border-red-500/50' : 'border-slate-700'
+                hasErrors ? 'border-red-500/50' : 'border-slate-700'
               }`}>
                 <div className="flex items-start gap-4">
                   <div className="flex-1 space-y-4">
@@ -451,25 +492,25 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                         value={topic.title}
                         onChange={(e) => updateTopic(topic.id, { title: e.target.value })}
                         className={`w-full bg-slate-700 text-white rounded-lg px-4 py-3 border focus:ring-1 focus:ring-blue-500 text-lg font-medium ${
-                          hasIssues ? 'border-red-500/50' : 'border-slate-600 focus:border-blue-500'
+                          hasErrors ? 'border-red-500/50' : 'border-slate-600 focus:border-blue-500'
                         }`}
                       />
-                      {hasIssues && (
+                      {hasErrors && (
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                           <AlertTriangle className="w-5 h-5 text-red-400" />
                         </div>
                       )}
                     </div>
                     
-                    {/* Validation Issues */}
-                    {hasIssues && validation && (
+                    {/* Validation Issues - only show when validation is triggered */}
+                    {hasErrors && (
                       <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                         <div className="flex items-start gap-2">
                           <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
                           <div>
                             <p className="text-sm font-medium text-red-300 mb-1">Topic needs improvement:</p>
                             <ul className="text-xs text-red-200 space-y-1">
-                              {validation.issues.map((issue, idx) => (
+                              {validationErrors[topic.id].map((issue, idx) => (
                                 <li key={idx} className="flex items-start gap-1">
                                   <span className="text-red-400">•</span>
                                   <span>{issue}</span>
@@ -930,6 +971,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                 const currentIndex = steps.indexOf(currentStep);
                 if (currentIndex > 0) {
                   setCurrentStep(steps[currentIndex - 1] as typeof currentStep);
+                  setShowValidation(false); // Reset validation when going back
                 }
               }}
               disabled={currentStep === 'agents'}
@@ -976,13 +1018,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
               </button>
             ) : (
               <button
-                onClick={() => {
-                  const steps = ['agents', 'topics', 'context', 'review'];
-                  const currentIndex = steps.indexOf(currentStep);
-                  if (currentIndex < steps.length - 1) {
-                    setCurrentStep(steps[currentIndex + 1] as typeof currentStep);
-                  }
-                }}
+                onClick={handleNextStep}
                 disabled={!canProceed()}
                 className={`
                   px-8 py-4 rounded-xl font-medium transition-all duration-200 flex items-center gap-3
