@@ -92,6 +92,11 @@ export interface TopicSummary {
   keyPoints: string[];
   icon: React.ReactNode;
   isCompleted: boolean;
+  // Enhanced summary fields
+  outcome?: string | null;
+  keyDecisions?: string[];
+  mainConcerns?: string[];
+  nextSteps?: string[];
   metrics?: {
     duration: number;
     messageCount: number;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, TrendingUp, DollarSign, Settings, Clock, Users, MessageSquare } from 'lucide-react';
+import { FileText, TrendingUp, DollarSign, Settings, Clock, Users, MessageSquare, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import { TopicSummary } from '../types';
 
 interface SummaryPanelProps {
@@ -51,15 +51,12 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ selectedTopicId, summaries 
           {/* Summary content - only show for completed topics */}
           {currentSummary.isCompleted ? (
             <>
-              <div className="prose prose-sm max-w-none">
-                <p className="text-slate-300 leading-relaxed">
-                  {currentSummary.content}
-                </p>
-              </div>
-              
               {/* Key points */}
               <div>
-                <h4 className="text-sm font-medium text-slate-200 mb-3">Key Points Discussed</h4>
+                <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  Key Points Discussed
+                </h4>
                 <ul className="space-y-2">
                   {currentSummary.keyPoints.map((point, index) => (
                     <li key={index} className="flex items-start gap-2">
@@ -69,6 +66,88 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ selectedTopicId, summaries 
                   ))}
                 </ul>
               </div>
+
+              {/* Conversation Summary */}
+              <div>
+                <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-blue-400" />
+                  Conversation Summary
+                </h4>
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-slate-300 leading-relaxed text-sm">
+                    {currentSummary.content}
+                  </p>
+                </div>
+              </div>
+
+              {/* Outcome Section */}
+              {currentSummary.outcome && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
+                    <ArrowRight className="w-4 h-4 text-emerald-400" />
+                    Discussion Outcome
+                  </h4>
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
+                    <p className="text-sm text-emerald-200 leading-relaxed">
+                      {currentSummary.outcome}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Key Decisions */}
+              {currentSummary.keyDecisions && currentSummary.keyDecisions.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-blue-400" />
+                    Key Decisions & Actions
+                  </h4>
+                  <ul className="space-y-2">
+                    {currentSummary.keyDecisions.map((decision, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <CheckCircle className="w-3 h-3 text-blue-400 mt-1 flex-shrink-0" />
+                        <span className="text-sm text-slate-300">{decision}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Main Concerns */}
+              {currentSummary.mainConcerns && currentSummary.mainConcerns.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400" />
+                    Main Concerns Raised
+                  </h4>
+                  <ul className="space-y-2">
+                    {currentSummary.mainConcerns.map((concern, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <AlertCircle className="w-3 h-3 text-amber-400 mt-1 flex-shrink-0" />
+                        <span className="text-sm text-slate-300">{concern}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Next Steps */}
+              {currentSummary.nextSteps && currentSummary.nextSteps.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
+                    <ArrowRight className="w-4 h-4 text-purple-400" />
+                    Next Steps
+                  </h4>
+                  <ul className="space-y-2">
+                    {currentSummary.nextSteps.map((step, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <ArrowRight className="w-3 h-3 text-purple-400 mt-1 flex-shrink-0" />
+                        <span className="text-sm text-slate-300">{step}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Metrics section for completed topics */}
               {currentSummary.metrics && (

@@ -7,6 +7,7 @@ import { BoardroomSession, Message, Timeline as TimelineType, Topic, TopicState,
 import { CEOAgent, CTOAgent, CFOAgent, CMOAgent, CHROAgent, COOAgent } from '../agents/ExecutiveAgents';
 import { BoardAgentBase } from '../agents/BoardAgentBase';
 import { TopicStateManager } from '../agents/TopicStateManager';
+import { SummaryAgent } from '../agents/SummaryAgent';
 import { ArrowLeft, TrendingUp, DollarSign, Settings, Target, Users, Briefcase } from 'lucide-react';
 
 interface BoardroomPageProps {
@@ -19,6 +20,7 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
   const [agents, setAgents] = useState<BoardAgentBase[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [stateManager] = useState<TopicStateManager>(new TopicStateManager());
+  const [summaryAgent] = useState<SummaryAgent>(new SummaryAgent(session.companyContext));
   const [topicStates, setTopicStates] = useState<Map<string, TopicState>>(new Map());
 
   // Initialize agents based on session configuration with pre-generated responses
@@ -143,7 +145,7 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
     }
   };
 
-  // Generate summaries based on actual conversation data from state manager
+  // Generate enhanced summaries using the SummaryAgent
   const generateSummaries = (): { [key: string]: TopicSummary } => {
     const summaries: { [key: string]: TopicSummary } = {};
     
@@ -153,38 +155,32 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
       const isCompleted = stateManager.isTopicCompleted(topic.id);
       
       if (isCompleted && messages.length > 0 && state) {
-        // Generate detailed summary from actual conversation
-        const agentMessages = messages.filter(msg => msg.agentId !== 'user');
-        const userMessages = messages.filter(msg => msg.agentId === 'user');
+        // Generate comprehensive summary using SummaryAgent
+        const conversationAnalysis = summaryAgent.generateConversationSummary(topic, messages);
+        
         const participants = new Set(messages.map(msg => msg.agentId));
         
         const keyPoints = [
           `${participants.size} participants engaged in discussion`,
-          `${agentMessages.length} executive insights shared`,
-          userMessages.length > 0 ? `${userMessages.length} stakeholder input(s) received` : 'No additional stakeholder input',
+          `${messages.filter(msg => msg.agentId !== 'user').length} executive insights shared`,
+          messages.filter(msg => msg.agentId === 'user').length > 0 
+            ? `${messages.filter(msg => msg.agentId === 'user').length} stakeholder input(s) received` 
+            : 'No additional stakeholder input',
           `Discussion completed in ${state.actualDuration} minutes`,
           `Topic relevance score: ${state.keyMetrics.topicRelevanceScore}%`
         ];
         
-        // Extract key themes from messages (enhanced analysis)
-        const allText = messages.map(msg => msg.text).join(' ').toLowerCase();
-        const themes = [];
-        if (allText.includes('strategy') || allText.includes('strategic')) themes.push('Strategic planning discussed');
-        if (allText.includes('risk') || allText.includes('challenge')) themes.push('Risk assessment conducted');
-        if (allText.includes('budget') || allText.includes('cost') || allText.includes('financial')) themes.push('Financial implications reviewed');
-        if (allText.includes('technology') || allText.includes('technical')) themes.push('Technical considerations evaluated');
-        if (allText.includes('market') || allText.includes('competition')) themes.push('Market analysis performed');
-        if (allText.includes('team') || allText.includes('hiring') || allText.includes('resource')) themes.push('Resource planning addressed');
-        
-        keyPoints.push(...themes.slice(0, 3)); // Add up to 3 themes
-        
         summaries[topic.id] = {
           id: topic.id,
           title: topic.title,
-          content: `The board completed a comprehensive discussion on ${topic.title.toLowerCase()}. The conversation involved ${agentMessages.length} executive contributions from ${participants.size - (userMessages.length > 0 ? 1 : 0)} board members${userMessages.length > 0 ? ' plus stakeholder input' : ''}. The discussion addressed key aspects relevant to ${currentSession.companyContext.name}'s ${currentSession.companyContext.stage} stage in the ${currentSession.companyContext.industry} industry, with a focus on strategic, operational, and risk considerations. The topic achieved a ${state.keyMetrics.topicRelevanceScore}% relevance score based on content analysis.`,
-          keyPoints: keyPoints.slice(0, 8), // Limit to 8 key points
+          content: conversationAnalysis.summary,
+          keyPoints: keyPoints,
           icon: getTopicIcon(topic.title),
           isCompleted: true,
+          outcome: conversationAnalysis.outcome,
+          keyDecisions: conversationAnalysis.keyDecisions,
+          mainConcerns: conversationAnalysis.mainConcerns,
+          nextSteps: conversationAnalysis.nextSteps,
           metrics: {
             duration: state.actualDuration,
             messageCount: state.messageCount,
