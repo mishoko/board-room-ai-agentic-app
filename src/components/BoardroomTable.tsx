@@ -30,15 +30,37 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   const [isInterrupted, setIsInterrupted] = useState(false); // Track if conversation was interrupted
   const [conversationContext, setConversationContext] = useState<Message[]>([]); // Store full conversation context
 
-  // Calculate display duration based on message length
+  // Enhanced calculation for message display duration based on text complexity
   const calculateMessageDuration = (message: string): number => {
-    const baseTime = 2000; // 2 seconds minimum
-    const wordsPerMinute = 200; // Average reading speed
+    const baseTime = 4000; // Increased base time to 4 seconds minimum
+    const wordsPerMinute = 180; // Slightly slower reading speed for complex content
     const words = message.trim().split(/\s+/).length;
-    const readingTime = (words / wordsPerMinute) * 60 * 1000; // Convert to milliseconds
     
-    // Ensure minimum 2 seconds, maximum 15 seconds
-    const duration = Math.max(baseTime, Math.min(readingTime * 1.5, 15000));
+    // Calculate reading time in milliseconds
+    const readingTime = (words / wordsPerMinute) * 60 * 1000;
+    
+    // Add extra time for complex sentences and punctuation
+    const sentences = message.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
+    const complexityBonus = sentences * 500; // 500ms per sentence
+    
+    // Add time for commas and semicolons (pause points)
+    const pausePoints = (message.match(/[,;]/g) || []).length;
+    const pauseBonus = pausePoints * 300; // 300ms per pause point
+    
+    // Calculate total duration
+    const totalDuration = readingTime * 1.8 + complexityBonus + pauseBonus; // 1.8x multiplier for comprehension
+    
+    // Ensure minimum 4 seconds, maximum 25 seconds for very long messages
+    const duration = Math.max(baseTime, Math.min(totalDuration, 25000));
+    
+    console.log(`Message duration calculation:
+      Words: ${words}
+      Sentences: ${sentences}
+      Pause points: ${pausePoints}
+      Reading time: ${readingTime}ms
+      Complexity bonus: ${complexityBonus}ms
+      Pause bonus: ${pauseBonus}ms
+      Final duration: ${duration}ms (${(duration/1000).toFixed(1)}s)`);
     
     return duration;
   };
@@ -115,8 +137,10 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             userInput: isInterrupted ? 'Consider the user input and adjust the discussion accordingly' : undefined
           });
           
-          // Calculate duration for this specific message
+          // Calculate duration for this specific message with enhanced timing
           const duration = calculateMessageDuration(response);
+          
+          console.log(`${randomAgent.getAgent().role} speaking for ${(duration/1000).toFixed(1)}s: "${response.substring(0, 50)}..."`);
           
           setActiveMembers([randomAgent.getAgent().role]);
           setCurrentMessages(prev => ({
@@ -168,7 +192,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
           console.error('Error generating agent response:', error);
         }
       }
-    }, 4000);
+    }, 4500); // Slightly increased interval to allow for longer reading times
 
     return () => clearInterval(interval);
   }, [isPaused, isInterrupting, agents, currentTopic, stateManager, isInterrupted]);
