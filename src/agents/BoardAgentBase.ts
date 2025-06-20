@@ -100,3 +100,5 @@ export abstract class BoardAgentBase {
 // TODO: Implement more advanced sentiment analysis and keyword extraction
 // TODO: Add memory management for long conversations
 // TODO: Implement agent personality traits and decision-making patterns
+
+export { BoardAgentBase }
