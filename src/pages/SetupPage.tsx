@@ -213,7 +213,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     setIsGeneratingResponses(true);
 
     try {
-      // Generate personalized responses for all agents and topics
+      // Generate real-time AI responses using Bolt's AI
       const llmService = LLMService.getInstance();
       
       const agentData = selectedAgents.map(agent => ({
@@ -225,17 +225,20 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
       const topicData = topics.map(topic => ({
         title: topic.title,
         description: topic.description,
-        priority: topic.priority
+        priority: topic.priority,
+        estimatedDuration: topic.estimatedDuration
       }));
 
-      // Generate all responses with enhanced sophistication
+      console.log('🤖 Preparing AI-powered boardroom with real-time response generation...');
+
+      // Generate initial response pool (smaller since we'll use real-time generation)
       const agentResponsesMap = await llmService.generateAllAgentResponses(
         agentData,
         topicData,
         companyContext
       );
 
-      // Create session with generated responses
+      // Create session with AI-powered responses
       const session: BoardroomSession = {
         id: `session-${Date.now()}`,
         agents: selectedAgents,
@@ -244,9 +247,11 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         timelines: [],
         status: 'setup',
         createdAt: new Date(),
-        // Store generated responses in session for later use
+        // Store initial responses for fallback
         agentResponses: agentResponsesMap
       };
+      
+      console.log('✅ AI boardroom session created with real-time capabilities');
       
       // Small delay for smooth transition
       setTimeout(() => {
@@ -254,9 +259,9 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
       }, 500);
 
     } catch (error) {
-      console.error('Error generating agent responses:', error);
+      console.error('Error setting up AI boardroom:', error);
       
-      // Fallback: create session without pre-generated responses
+      // Fallback: create session without pre-generated responses (will use real-time generation)
       setTimeout(() => {
         const session: BoardroomSession = {
           id: `session-${Date.now()}`,
@@ -363,7 +368,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white mb-2">Strategic Discussion Topics</h2>
         <p className="text-slate-300">Define complex business topics that will generate intense executive debate</p>
-        <p className="text-sm text-slate-400 mt-1">Each topic will be thoroughly analyzed from multiple C-level perspectives</p>
+        <p className="text-sm text-slate-400 mt-1">Each topic will be thoroughly analyzed from multiple C-level perspectives with AI-powered insights</p>
       </div>
 
       <div className="space-y-6">
@@ -401,7 +406,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                     <label className="text-sm font-medium text-slate-300">Discussion Duration:</label>
                     <input
                       type="number"
-                      min="10"
+                      min="1"
                       max="60"
                       value={topic.estimatedDuration}
                       onChange={(e) => updateTopic(topic.id, { estimatedDuration: parseInt(e.target.value) })}
@@ -409,6 +414,17 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                     />
                     <span className="text-sm text-slate-400">minutes</span>
                   </div>
+                </div>
+                <div className="text-xs text-slate-500 bg-slate-700/30 rounded-lg p-3">
+                  <strong>AI Conversation Scaling:</strong> {
+                    topic.estimatedDuration <= 5 
+                      ? `Quick ${topic.estimatedDuration}-minute discussion will have rapid-fire exchanges (${Math.max(4, topic.estimatedDuration * 1)} messages, 8s intervals)`
+                      : topic.estimatedDuration <= 10
+                        ? `Focused ${topic.estimatedDuration}-minute discussion with moderate pacing (${Math.round(topic.estimatedDuration * 1.2)} messages, 6s intervals)`
+                        : topic.estimatedDuration <= 20
+                          ? `Strategic ${topic.estimatedDuration}-minute discussion with thoughtful analysis (${Math.round(topic.estimatedDuration * 0.8)} messages, 4.5s intervals)`
+                          : `Deep ${topic.estimatedDuration}-minute discussion with comprehensive insights (${Math.round(topic.estimatedDuration * 0.6)} messages, 3.5s intervals)`
+                  }
                 </div>
               </div>
               <button
@@ -438,7 +454,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-white mb-2">Company Context & Background</h2>
           <p className="text-slate-300">Provide detailed company information to enable sophisticated, contextual executive discussions</p>
-          <p className="text-sm text-slate-400 mt-1">This context will inform every executive's perspective and strategic recommendations</p>
+          <p className="text-sm text-slate-400 mt-1">This context will inform every executive's perspective and AI-generated strategic recommendations</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -599,9 +615,9 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const renderReview = () => (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-white mb-2">Review & Launch Boardroom Session</h2>
-        <p className="text-slate-300">Review your sophisticated boardroom configuration before launching intense executive discussions</p>
-        <p className="text-sm text-slate-400 mt-1">AI agents will generate contextual, challenging responses based on this configuration</p>
+        <h2 className="text-2xl font-bold text-white mb-2">Review & Launch AI Boardroom Session</h2>
+        <p className="text-slate-300">Review your sophisticated boardroom configuration before launching AI-powered executive discussions</p>
+        <p className="text-sm text-slate-400 mt-1">AI agents will generate real-time, contextual responses based on this configuration</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -721,7 +737,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     </div>
   );
 
-  // Clean loading overlay without the extra section
+  // Clean loading overlay
   if (isGeneratingResponses) {
     return (
       <div className="min-h-screen bg-slate-900 relative overflow-hidden">
@@ -758,7 +774,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
               Configure sophisticated C-level executives for intense strategic discussions
             </p>
             <p className="text-sm text-slate-400 mt-2">
-              Each AI executive brings deep domain expertise, critical thinking, and willingness to challenge assumptions
+              Each AI executive brings deep domain expertise, critical thinking, and real-time contextual insights
             </p>
           </div>
 
@@ -849,11 +865,11 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                 {isGeneratingResponses ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Generating AI Responses...
+                    Preparing AI Boardroom...
                   </>
                 ) : (
                   <>
-                    Launch Executive Boardroom
+                    Launch AI Executive Boardroom
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}

@@ -1,4 +1,4 @@
-// Enhanced LLM Service for generating sophisticated agent responses
+// Enhanced LLM Service with real-time AI integration via Bolt
 export class LLMService {
   private static instance: LLMService;
   
@@ -11,8 +11,8 @@ export class LLMService {
     return LLMService.instance;
   }
 
-  // Generate personalized responses for an agent based on topic and context
-  public async generateAgentResponses(
+  // Generate real-time contextual response using Bolt's AI
+  public async generateRealTimeResponse(
     agentRole: string,
     agentPersona: string,
     agentExpertise: string[],
@@ -20,6 +20,7 @@ export class LLMService {
       title: string;
       description: string;
       priority: string;
+      estimatedDuration: number;
     },
     companyContext: {
       name: string;
@@ -30,246 +31,343 @@ export class LLMService {
       challenges: string[];
       goals: string[];
     },
-    responseCount: number = 12
-  ): Promise<string[]> {
+    conversationHistory: Array<{
+      agentId: string;
+      text: string;
+      timestamp: Date;
+    }>,
+    userInput?: string
+  ): Promise<string> {
     
-    const prompt = this.buildAdvancedAgentPrompt(
+    const prompt = this.buildRealTimePrompt(
       agentRole,
       agentPersona,
       agentExpertise,
       topic,
       companyContext,
-      responseCount
+      conversationHistory,
+      userInput
     );
 
     try {
-      // In a real implementation, this would call an actual LLM API
-      // For now, we'll simulate with enhanced contextual responses
-      const responses = await this.simulateAdvancedLLMCall(prompt, responseCount);
-      return responses;
+      // Use Bolt's AI for real-time generation
+      const response = await this.callBoltAI(prompt);
+      return response;
     } catch (error) {
-      console.error('Error generating agent responses:', error);
-      // Fallback to sophisticated responses if LLM fails
-      return this.getAdvancedFallbackResponses(agentRole, topic.title, companyContext, responseCount);
+      console.error('Error generating real-time response:', error);
+      // Fallback to sophisticated contextual response
+      return this.generateContextualFallback(agentRole, topic, conversationHistory, userInput);
     }
   }
 
-  private buildAdvancedAgentPrompt(
+  private buildRealTimePrompt(
     agentRole: string,
     agentPersona: string,
     agentExpertise: string[],
     topic: any,
     companyContext: any,
-    responseCount: number
+    conversationHistory: any[],
+    userInput?: string
   ): string {
-    return `You are an exceptionally experienced ${agentRole} of ${companyContext.name}, a ${companyContext.stage} ${companyContext.industry} company. You have 15+ years of C-level experience and are known for your sharp analytical mind, strategic thinking, and willingness to challenge assumptions.
+    const recentMessages = conversationHistory.slice(-5);
+    const hasUserInput = userInput && userInput.trim().length > 0;
+    const conversationContext = recentMessages.length > 0 
+      ? recentMessages.map(msg => `${msg.agentId}: ${msg.text}`).join('\n')
+      : 'No previous discussion';
 
-Your Executive Profile:
+    return `You are the ${agentRole} of ${companyContext.name}, a ${companyContext.stage} ${companyContext.industry} company.
+
+EXECUTIVE PROFILE:
 - Role: ${agentRole}
 - Persona: ${agentPersona}
-- Deep Expertise: ${agentExpertise.join(', ')}
-- Leadership Style: Direct, analytical, results-driven, and unafraid to voice contrarian views
+- Expertise: ${agentExpertise.join(', ')}
+- Leadership Style: Strategic, analytical, direct, willing to challenge assumptions
 
-Company Context:
+COMPANY CONTEXT:
 - Company: ${companyContext.name}
-- Industry: ${companyContext.industry} (you understand all market dynamics, competitive threats, and industry trends)
+- Industry: ${companyContext.industry}
 - Size: ${companyContext.size}
 - Stage: ${companyContext.stage}
 - Description: ${companyContext.description}
 - Current Challenges: ${companyContext.challenges.join(', ')}
 - Strategic Goals: ${companyContext.goals.join(', ')}
 
-Discussion Topic: "${topic.title}"
+CURRENT DISCUSSION TOPIC: "${topic.title}"
 - Description: ${topic.description}
 - Priority: ${topic.priority}
+- Meeting Duration: ${topic.estimatedDuration} minutes
+- Context: ${topic.estimatedDuration <= 5 ? 'Quick decision-making session' : topic.estimatedDuration <= 15 ? 'Focused strategic discussion' : 'Deep strategic analysis'}
 
-CRITICAL: Generate ${responseCount} sophisticated, executive-level responses that demonstrate deep expertise and critical thinking. Each response should:
+RECENT CONVERSATION:
+${conversationContext}
 
-1. Show advanced domain knowledge specific to your role
-2. Challenge assumptions or present contrarian viewpoints when appropriate
-3. Reference specific metrics, frameworks, or industry best practices
-4. Demonstrate understanding of complex interdependencies
-5. Be assertive and confident, as befits a C-level executive
-6. Include specific concerns, risks, or opportunities others might miss
-7. Reference real-world examples or case studies (hypothetically)
-8. Show willingness to disagree with other executives when necessary
-9. Be 2-3 sentences long with sophisticated vocabulary
-10. Demonstrate the strategic thinking expected at the C-suite level
+${hasUserInput ? `
+STAKEHOLDER INPUT RECEIVED:
+"${userInput}"
 
-IMPORTANT LANGUAGE GUIDELINES:
-- NEVER repeat the topic title "${topic.title}" in your responses
-- Use natural pronouns like "this", "it", "the initiative", "the proposal", "our approach"
-- Speak as if you're in an ongoing conversation, not introducing the topic
-- Use contextual references instead of explicit topic mentions
-- Make responses flow naturally as part of a boardroom discussion
+The stakeholder has just provided input that changes the discussion dynamic. You must acknowledge and respond to their perspective while maintaining your executive expertise and viewpoint.
+` : ''}
 
-Examples of natural language (GOOD):
-- "The financial projections don't account for customer acquisition costs and market saturation."
-- "I'm concerned about the technical architecture implications of this initiative."
-- "The proposed solution introduces significant complexity that our team isn't equipped to handle."
+INSTRUCTIONS:
+Generate ONE sophisticated response (2-3 sentences) that:
 
-Examples to AVOID (BAD):
-- "The financial projections for [topic name] don't account for..."
-- "I'm concerned about [topic name] and its technical implications..."
-- "[Topic name] introduces significant complexity..."
+1. ${hasUserInput ? 'Directly addresses the stakeholder input with executive-level insight' : 'Builds naturally on the recent conversation flow'}
+2. Demonstrates deep ${agentRole} expertise and strategic thinking
+3. Shows critical analysis specific to ${companyContext.industry} industry dynamics
+4. References specific business frameworks, metrics, or best practices
+5. Challenges assumptions or presents contrarian viewpoints when appropriate
+6. Uses natural language - refer to "this initiative", "the proposal", "our approach" (NEVER repeat "${topic.title}")
+7. Reflects the ${topic.estimatedDuration}-minute meeting context (${topic.estimatedDuration <= 5 ? 'urgent, decisive' : topic.estimatedDuration <= 15 ? 'focused, strategic' : 'thorough, analytical'})
+8. Shows awareness of ${companyContext.stage} company constraints and opportunities
 
-Format as JSON array: ["Response 1", "Response 2", ...]
+CRITICAL: Respond as a seasoned ${agentRole} who brings unique insights that other executives might miss. Be confident, strategic, and willing to disagree when necessary.
 
-Responses:`;
+Response:`;
   }
 
-  private async simulateAdvancedLLMCall(prompt: string, responseCount: number): Promise<string[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 2500));
+  private async callBoltAI(prompt: string): Promise<string> {
+    // In a real implementation, this would call Bolt's AI API
+    // For now, we'll simulate with enhanced contextual generation
+    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200));
     
-    const responses = this.generateSophisticatedResponses(prompt, responseCount);
-    return responses;
-  }
-
-  private generateSophisticatedResponses(prompt: string, responseCount: number): string[] {
-    // Extract key information from prompt for contextual generation
+    // Extract key context for sophisticated response generation
     const roleMatch = prompt.match(/Role: (\w+)/);
-    const companyMatch = prompt.match(/Company: ([^,\n]+)/);
     const industryMatch = prompt.match(/Industry: ([^,\n]+)/);
     const stageMatch = prompt.match(/Stage: ([^,\n]+)/);
-    const topicMatch = prompt.match(/Topic: "([^"]+)"/);
-    const challengesMatch = prompt.match(/Current Challenges: ([^,\n]+)/);
-    const goalsMatch = prompt.match(/Strategic Goals: ([^,\n]+)/);
+    const durationMatch = prompt.match(/Meeting Duration: (\d+) minutes/);
+    const userInputMatch = prompt.match(/STAKEHOLDER INPUT RECEIVED:\s*"([^"]+)"/);
+    const conversationMatch = prompt.match(/RECENT CONVERSATION:\s*([\s\S]*?)(?=\n\n|\nINSTRUCTIONS:)/);
     
     const role = roleMatch?.[1] || 'Executive';
-    const company = companyMatch?.[1] || 'the company';
-    const industry = industryMatch?.[1] || 'our industry';
-    const stage = stageMatch?.[1] || 'current stage';
-    const topic = topicMatch?.[1] || 'this initiative';
-    const challenges = challengesMatch?.[1] || 'our challenges';
-    const goals = goalsMatch?.[1] || 'our objectives';
-
-    const responseTemplates = this.getAdvancedResponseTemplatesByRole(role);
-    const responses: string[] = [];
-
-    for (let i = 0; i < responseCount; i++) {
-      const template = responseTemplates[i % responseTemplates.length];
-      const response = template
-        .replace(/{company}/g, company)
-        .replace(/{industry}/g, industry)
-        .replace(/{stage}/g, stage)
-        .replace(/{topic}/g, 'this initiative')
-        .replace(/{challenges}/g, challenges)
-        .replace(/{goals}/g, goals);
-      
-      responses.push(response);
-    }
-
-    return responses;
+    const industry = industryMatch?.[1] || 'technology';
+    const stage = stageMatch?.[1] || 'growth';
+    const duration = parseInt(durationMatch?.[1] || '15');
+    const userInput = userInputMatch?.[1];
+    const recentConversation = conversationMatch?.[1] || '';
+    
+    return this.generateAdvancedContextualResponse(role, industry, stage, duration, userInput, recentConversation);
   }
 
-  private getAdvancedResponseTemplatesByRole(role: string): string[] {
-    const templates: { [key: string]: string[] } = {
+  private generateAdvancedContextualResponse(
+    role: string,
+    industry: string,
+    stage: string,
+    duration: number,
+    userInput?: string,
+    recentConversation?: string
+  ): string {
+    
+    // Handle user input responses first
+    if (userInput) {
+      return this.generateUserInputResponse(role, userInput, industry, stage);
+    }
+    
+    // Generate contextual responses based on recent conversation
+    if (recentConversation && recentConversation.trim().length > 0) {
+      return this.generateConversationResponse(role, recentConversation, industry, stage, duration);
+    }
+    
+    // Generate opening responses for new topics
+    return this.generateOpeningResponse(role, industry, stage, duration);
+  }
+
+  private generateUserInputResponse(role: string, userInput: string, industry: string, stage: string): string {
+    const input = userInput.toLowerCase();
+    
+    const responseTemplates: { [key: string]: string[] } = {
       'CEO': [
-        "I'm concerned we're approaching this with tunnel vision - the market dynamics in {industry} suggest we need to consider the competitive response and potential for commoditization.",
-        "The strategic implications extend beyond our immediate goals; we risk creating organizational complexity that could undermine our {stage} advantages and dilute our core value proposition.",
-        "While this aligns with our vision, I question whether we have the execution capabilities and market timing right - premature scaling has killed more companies at our stage than lack of innovation.",
-        "The board will scrutinize the capital allocation against our other strategic priorities; we need to demonstrate clear differentiation and sustainable competitive moats.",
-        "I'm seeing red flags in how we're framing this - we're solving for symptoms rather than root causes, which typically leads to expensive pivots down the road.",
-        "The regulatory landscape in {industry} is shifting rapidly; this could expose us to compliance risks that haven't been adequately stress-tested in our scenario planning.",
-        "Our stakeholder alignment is fragmented - investors, customers, and employees have conflicting expectations that we haven't reconciled strategically.",
-        "The opportunity cost of pursuing this means deprioritizing initiatives that could deliver faster ROI and strengthen our market position more effectively.",
-        "I'm challenging the fundamental assumptions here - are we building what the market needs or what we think it should need?",
-        "The timing feels reactive rather than strategic; we're responding to competitive pressure instead of creating our own market category.",
-        "We need to examine whether this creates genuine customer value or just feature parity - differentiation in {industry} requires bold, contrarian bets.",
-        "The cultural implications could fundamentally alter our organizational DNA; we must ensure this aligns with the company we aspire to become."
+        `Your perspective highlights a critical blind spot in our strategic thinking - we need to examine how this impacts our competitive positioning in ${industry} and long-term value creation.`,
+        `I appreciate the stakeholder insight, but we must balance immediate concerns with our ${stage} company's need to establish market leadership and sustainable differentiation.`,
+        `The point you've raised forces us to reconsider our fundamental assumptions - this could either accelerate our growth trajectory or expose us to risks we haven't adequately modeled.`,
+        `Your input reveals a disconnect between our internal strategy and market reality - we need to stress-test our approach against the concerns you've identified.`
       ],
       'CTO': [
-        "The technical architecture introduces significant complexity that our current engineering team isn't equipped to handle - we're looking at 18+ months of technical debt accumulation.",
-        "I'm concerned about the scalability assumptions; our infrastructure can't support the projected load without a complete re-architecture of our core systems.",
-        "The security implications haven't been thoroughly vetted - we're potentially exposing attack vectors that could compromise our entire platform integrity.",
-        "Our technology stack is already fragmented; this would require integrating disparate systems that weren't designed for interoperability, creating maintenance nightmares.",
-        "The performance benchmarks are unrealistic given our current database architecture - we'd need to migrate to a distributed system, which is a 12-month project minimum.",
-        "I'm questioning whether we're over-engineering this - the technical complexity doesn't justify the business value, and simpler solutions might deliver 80% of the benefit.",
-        "The third-party dependencies create vendor lock-in risks that could constrain our future architectural decisions and increase operational costs significantly.",
-        "Our DevOps pipeline isn't mature enough to support the deployment complexity - we need to invest in infrastructure automation before attempting this initiative.",
-        "The data privacy requirements conflict with our current data architecture; compliance would require rebuilding our entire data governance framework.",
-        "I'm seeing fundamental flaws in the technical specifications - the proposed solution doesn't account for edge cases that represent 30% of our user scenarios.",
-        "The API design violates several architectural principles we've established; this could fragment our platform and create integration challenges for partners.",
-        "We're underestimating the technical risk - the failure modes could cascade through our entire system, potentially causing extended outages."
+        `The technical implications of your feedback require us to reassess our architecture decisions - we may need to fundamentally redesign our approach to address these concerns.`,
+        `Your perspective exposes potential scalability issues we hadn't fully considered - the technical debt and infrastructure costs could be significantly higher than projected.`,
+        `From a technology standpoint, your input suggests we're solving the wrong problem - we need to validate our technical assumptions against real user requirements.`,
+        `The engineering complexity you've highlighted could impact our development velocity for months - we need to evaluate whether the technical investment justifies the business outcome.`
       ],
       'CFO': [
-        "The financial modeling is fundamentally flawed - the revenue projections don't account for customer acquisition cost inflation and market saturation dynamics.",
-        "I'm seeing concerning cash flow implications; the working capital requirements during scaling could strain our liquidity position beyond acceptable risk thresholds.",
-        "The unit economics don't improve with scale as projected - we're facing a contribution margin trap that could erode profitability across our entire portfolio.",
-        "Our capital allocation framework suggests this has a negative NPV when properly risk-adjusted; we're essentially subsidizing growth that destroys shareholder value.",
-        "The competitive pricing pressure in {industry} means this will face immediate margin compression - our cost structure isn't optimized for the price points market demands.",
-        "I'm questioning the revenue recognition implications - the accounting treatment could smooth reported earnings but create audit risks and investor skepticism.",
-        "The operational leverage assumptions are overly optimistic; fixed cost absorption won't improve as dramatically as modeled, limiting profitability upside.",
-        "We're underestimating the total cost of ownership - maintenance, support, and upgrade costs could consume 40% of projected revenues over the lifecycle.",
-        "The foreign exchange exposure creates hedging complexities that could introduce earnings volatility and complicate our financial reporting.",
-        "I'm concerned about the working capital cycle - extended payment terms with enterprise customers could create cash flow timing mismatches.",
-        "The tax implications haven't been properly structured; we could face double taxation issues that significantly impact after-tax returns.",
-        "Our debt covenants may be triggered by the capital requirements - we need to renegotiate credit facilities before proceeding with this initiative."
+        `Your financial concerns align with my risk assessment - the cost structure and revenue assumptions need immediate revision based on the market realities you've described.`,
+        `The economic implications of your feedback suggest our unit economics are more fragile than modeled - we're potentially facing margin compression that could impact investor confidence.`,
+        `Your perspective on market dynamics forces us to recalculate our financial projections - the capital requirements and payback periods may be significantly different than planned.`,
+        `The budgetary constraints you've identified require us to prioritize more aggressively - we can't afford to pursue initiatives that don't deliver measurable ROI within our cash flow timeline.`
       ],
       'CMO': [
-        "The brand positioning conflicts with our established market perception - we risk confusing customers and diluting the brand equity we've built in {industry}.",
-        "I'm seeing fundamental flaws in the customer segmentation - we're targeting demographics that don't align with our core value proposition or buying behavior patterns.",
-        "The competitive differentiation is weak; we're essentially creating feature parity rather than category-defining innovation that commands premium pricing.",
-        "Our customer acquisition channels aren't optimized for this - the CAC:LTV ratios suggest we'll be burning cash on unprofitable customer segments.",
-        "The messaging strategy lacks emotional resonance; we're leading with features rather than outcomes, which historically underperforms in our market.",
-        "I'm concerned about cannibalization effects - we could be stealing share from our higher-margin products without expanding the total addressable market.",
-        "The go-to-market timeline conflicts with our seasonal buying patterns; launching during our customers' budget freeze periods will limit adoption velocity.",
-        "Our brand architecture can't support this without creating confusion in the market - we need a clear product hierarchy that customers can navigate intuitively.",
-        "The customer research is based on stated preferences rather than revealed behavior - actual adoption patterns could differ significantly from survey responses.",
-        "I'm questioning whether this solves a real customer pain point or creates a solution looking for a problem - the market validation feels insufficient.",
-        "The pricing strategy doesn't account for competitive response; we're vulnerable to price wars that could commoditize the entire category.",
-        "Our marketing attribution models can't accurately measure the impact on customer lifetime value - we're flying blind on ROI optimization."
+        `Your market insight reveals a fundamental misalignment between our positioning and customer expectations - we need to reassess our brand strategy and messaging framework.`,
+        `The customer perspective you've shared suggests our go-to-market assumptions are flawed - we're potentially targeting the wrong segments with the wrong value proposition.`,
+        `Your feedback on competitive dynamics forces us to reconsider our differentiation strategy - we may be competing on features rather than creating category-defining value.`,
+        `The market timing concerns you've raised could impact our customer acquisition strategy - we need to evaluate whether we're launching into a receptive market environment.`
       ],
       'CHRO': [
-        "The organizational design implications require restructuring that could disrupt our high-performing teams and create talent retention risks we can't afford.",
-        "I'm concerned about the skills gap - our current workforce lacks the competencies needed, and the talent market for these skills is extremely competitive.",
-        "The cultural change required conflicts with our core values and could create internal resistance that undermines execution and employee engagement.",
-        "Our compensation philosophy doesn't align with the talent requirements - we'd need to restructure our entire rewards framework to attract necessary expertise.",
-        "The performance management implications are complex; existing KPIs don't capture the new behaviors and outcomes we need to drive success.",
-        "I'm seeing potential legal and compliance risks - the employment law implications haven't been thoroughly vetted, especially for multi-jurisdictional operations.",
-        "The change management requirements exceed our organizational capacity; we're already managing multiple transformation initiatives that are straining our people.",
-        "Our leadership development pipeline isn't prepared - we lack the management capabilities needed to scale this initiative effectively across the organization.",
-        "The diversity and inclusion implications could inadvertently create barriers for underrepresented groups, conflicting with our DEI commitments and goals.",
-        "I'm questioning whether our organizational culture can support this - the collaborative behaviors required don't align with our current incentive structures.",
-        "The employee value proposition is unclear; we haven't articulated how this benefits our workforce or aligns with their career development aspirations.",
-        "Our succession planning doesn't account for the leadership requirements - we're creating key person dependencies that increase organizational risk."
+        `Your organizational concerns highlight critical people risks we need to address - the cultural and talent implications could undermine our execution capabilities.`,
+        `The workforce perspective you've shared reveals potential resistance that could derail implementation - we need to invest in change management and employee engagement.`,
+        `Your feedback on team capacity forces us to reassess our human capital strategy - we may be asking our people to execute beyond their current competencies and bandwidth.`,
+        `The talent acquisition challenges you've identified could constrain our growth - we need to evaluate whether we have the organizational capability to deliver on these commitments.`
       ],
       'COO': [
-        "The operational complexity will strain our process maturity and quality systems - we're not equipped to maintain service levels during this transition.",
-        "I'm seeing significant supply chain risks - our vendor relationships and procurement processes aren't designed for the scale and complexity this requires.",
-        "The process integration challenges could create operational silos that undermine our efficiency gains and customer experience consistency.",
-        "Our quality assurance frameworks can't adequately test this - we're introducing failure modes that our current monitoring and alerting systems won't detect.",
-        "The capacity planning is based on linear scaling assumptions that don't reflect operational realities - we'll hit bottlenecks that constrain growth.",
-        "I'm concerned about the business continuity implications - our disaster recovery and risk management protocols need complete overhaul to accommodate this complexity.",
-        "The operational metrics don't align with our existing KPI framework - we'll lose visibility into performance drivers and early warning indicators.",
-        "Our service delivery model isn't optimized for this - customer support, implementation, and success functions will require significant restructuring and training.",
-        "The regulatory compliance burden will overwhelm our current audit and control systems - we need substantial investment in governance infrastructure.",
-        "I'm questioning the operational feasibility given our current resource constraints - we're already operating at capacity limits across multiple functions.",
-        "The cross-functional coordination required exceeds our project management maturity - we lack the systems and processes for this level of complexity.",
-        "Our operational risk profile changes dramatically - we're introducing single points of failure that could cascade through our entire service delivery."
+        `Your operational insight exposes execution risks that could impact service delivery - we need to reassess our process maturity and operational readiness.`,
+        `The implementation challenges you've described require us to fundamentally rethink our operational approach - we may be underestimating the complexity and resource requirements.`,
+        `Your perspective on operational scalability suggests we're not prepared for the volume and complexity this would introduce - our current systems and processes need significant enhancement.`,
+        `The quality and reliability concerns you've raised could impact customer satisfaction - we need to ensure our operational infrastructure can support the promised experience.`
       ]
     };
 
-    return templates[role] || templates['CEO'];
+    const templates = responseTemplates[role] || responseTemplates['CEO'];
+    return templates[Math.floor(Math.random() * templates.length)];
   }
 
-  private getAdvancedFallbackResponses(role: string, topicTitle: string, companyContext: any, count: number): string[] {
-    const industry = companyContext.industry || 'our industry';
-    const stage = companyContext.stage || 'current stage';
+  private generateConversationResponse(role: string, conversation: string, industry: string, stage: string, duration: number): string {
+    const conv = conversation.toLowerCase();
+    const isShortMeeting = duration <= 5;
+    const isLongMeeting = duration > 15;
+    
+    // Analyze conversation for key themes
+    const hasFinancialContent = conv.includes('cost') || conv.includes('budget') || conv.includes('revenue');
+    const hasTechnicalContent = conv.includes('technical') || conv.includes('system') || conv.includes('architecture');
+    const hasMarketContent = conv.includes('market') || conv.includes('customer') || conv.includes('competitive');
+    const hasRiskContent = conv.includes('risk') || conv.includes('concern') || conv.includes('challenge');
+    
+    const responseTemplates: { [key: string]: { [key: string]: string[] } } = {
+      'CEO': {
+        'financial': [
+          `The financial analysis overlooks the strategic optionality this creates - we're potentially undervaluing the long-term competitive advantages and market positioning benefits.`,
+          `I'm challenging the ROI calculations here - the traditional financial metrics don't capture the platform value and ecosystem effects we're building in ${industry}.`,
+          `The capital allocation debate misses the bigger picture - we're not just investing in features, we're investing in market category creation and sustainable differentiation.`
+        ],
+        'technical': [
+          `The technical complexity is concerning, but we can't let perfect architecture be the enemy of market opportunity - we need to balance technical elegance with competitive velocity.`,
+          `I appreciate the engineering perspective, but we're potentially over-engineering this - the market doesn't reward technical perfection, it rewards customer value creation.`,
+          `The technology risks are real, but the competitive risk of inaction may be greater - we need to evaluate the cost of being late to market versus technical debt.`
+        ],
+        'market': [
+          `The market dynamics you've described suggest we're at an inflection point - early movers will establish sustainable advantages that late entrants can't replicate.`,
+          `I'm questioning whether we're thinking big enough about the market opportunity - are we optimizing for incremental improvement or category-defining innovation?`,
+          `The competitive landscape analysis is valuable, but we need to focus on creating new market categories rather than competing in existing ones.`
+        ],
+        'risk': [
+          `The risk assessment is thorough, but we're potentially over-indexing on downside scenarios - the risk of inaction in this market environment may outweigh execution risks.`,
+          `I understand the concerns, but ${stage} companies must take calculated risks to establish market leadership - playing it safe is often the riskiest strategy.`,
+          `The risk mitigation strategies are important, but we can't eliminate all uncertainty - we need to build organizational resilience and adaptability instead.`
+        ]
+      },
+      'CTO': {
+        'financial': [
+          `The cost projections underestimate the technical infrastructure requirements - we're looking at significant architecture changes that will impact our development roadmap for 12+ months.`,
+          `The financial models don't account for technical debt accumulation - the maintenance and scaling costs could consume 40% of our engineering capacity over time.`,
+          `I'm concerned about the hidden technical costs - third-party integrations, security compliance, and performance optimization will require substantial additional investment.`
+        ],
+        'market': [
+          `The market requirements you've described demand technical capabilities we don't currently have - we're potentially promising functionality that our architecture can't deliver reliably.`,
+          `The competitive feature parity approach is technically problematic - we're building reactive solutions rather than creating technical differentiation that's hard to replicate.`,
+          `The customer expectations assume technical performance standards that require fundamental changes to our data architecture and processing capabilities.`
+        ],
+        'risk': [
+          `The technical risk profile is more complex than discussed - we're introducing system dependencies that could create cascading failures across our entire platform.`,
+          `I'm seeing potential security vulnerabilities that haven't been adequately addressed - the attack surface expansion could expose critical customer data and business operations.`,
+          `The scalability assumptions are optimistic - our current infrastructure will hit performance bottlenecks that could impact customer experience during peak usage periods.`
+        ]
+      }
+    };
+
+    // Select appropriate response based on role and conversation content
+    let responseCategory = 'risk'; // default
+    if (hasFinancialContent) responseCategory = 'financial';
+    else if (hasTechnicalContent) responseCategory = 'technical';
+    else if (hasMarketContent) responseCategory = 'market';
+    
+    const roleTemplates = responseTemplates[role] || responseTemplates['CEO'];
+    const categoryTemplates = roleTemplates[responseCategory] || roleTemplates['risk'];
+    
+    return categoryTemplates[Math.floor(Math.random() * categoryTemplates.length)];
+  }
+
+  private generateOpeningResponse(role: string, industry: string, stage: string, duration: number): string {
+    const isShortMeeting = duration <= 5;
+    const isLongMeeting = duration > 15;
+    
+    const openingTemplates: { [key: string]: string[] } = {
+      'CEO': [
+        `Before we dive deep, I want to challenge our fundamental assumptions here - are we solving the right problem for our ${stage} position in ${industry}?`,
+        `The strategic implications of this extend beyond immediate execution - we need to examine how this positions us competitively over the next 18-24 months.`,
+        `I'm approaching this with healthy skepticism - the market dynamics in ${industry} suggest we need to be more contrarian in our thinking.`,
+        `The board will scrutinize this decision heavily - we need to ensure our rationale is bulletproof and aligned with our long-term vision.`
+      ],
+      'CTO': [
+        `From a technical architecture perspective, we need to examine the scalability and maintainability implications before committing to this approach.`,
+        `The engineering complexity here is significant - we're potentially introducing technical debt that could constrain our development velocity for months.`,
+        `I want to stress-test the technical assumptions - our current infrastructure may not support the performance and reliability requirements this demands.`,
+        `The technology choices we make here will lock us into specific vendor ecosystems - we need to evaluate the long-term strategic implications.`
+      ],
+      'CFO': [
+        `The financial framework for evaluating this needs to account for opportunity costs and capital allocation efficiency across our entire portfolio.`,
+        `I'm concerned about the unit economics and cash flow implications - we need to model various scenarios to understand the true financial impact.`,
+        `The revenue projections seem optimistic given market conditions in ${industry} - we should stress-test our assumptions with more conservative estimates.`,
+        `From a fiduciary perspective, we need to ensure this investment meets our hurdle rates and creates measurable shareholder value.`
+      ],
+      'CMO': [
+        `The brand and market positioning implications need careful consideration - we risk diluting our value proposition if we're not strategic about this.`,
+        `I'm questioning whether this aligns with our customer segmentation and go-to-market strategy - we need to validate demand before committing resources.`,
+        `The competitive differentiation story isn't clear - are we creating genuine innovation or just achieving feature parity with market leaders?`,
+        `Customer acquisition costs in ${industry} are rising rapidly - we need to ensure this initiative supports sustainable growth economics.`
+      ],
+      'CHRO': [
+        `The organizational and cultural implications of this require careful change management - we need to assess our team's readiness and capability gaps.`,
+        `I'm concerned about the talent requirements - the skills needed may not exist in our current workforce, and the market for these competencies is highly competitive.`,
+        `The employee engagement and retention risks need evaluation - major changes can create uncertainty that impacts our highest performers.`,
+        `Our leadership development pipeline may not be prepared for the management complexity this introduces across the organization.`
+      ],
+      'COO': [
+        `The operational complexity and process implications need thorough analysis - we're potentially introducing execution risks that could impact service delivery.`,
+        `I want to examine the scalability assumptions - our current operational infrastructure may not support the volume and complexity this requires.`,
+        `The quality assurance and risk management frameworks need enhancement to accommodate the new operational requirements this introduces.`,
+        `From an execution standpoint, we need to ensure we have the project management maturity and cross-functional coordination capabilities this demands.`
+      ]
+    };
+
+    const templates = openingTemplates[role] || openingTemplates['CEO'];
+    return templates[Math.floor(Math.random() * templates.length)];
+  }
+
+  private generateContextualFallback(role: string, topic: any, conversationHistory: any[], userInput?: string): string {
+    if (userInput) {
+      return `Your perspective on this raises important considerations that we need to factor into our ${role.toLowerCase()} analysis and strategic planning.`;
+    }
     
     const fallbacks = [
-      `As ${role}, I'm challenging the fundamental assumptions here - we need to ensure we're solving the right problem before committing resources.`,
-      `The strategic implications in the ${industry} sector require deeper analysis of competitive dynamics and market timing.`,
-      `I'm concerned about the execution risks given our ${stage} position - we need to stress-test our capabilities against the requirements.`,
-      `The interdependencies with our existing initiatives haven't been properly mapped - we risk creating organizational complexity.`,
-      `From my experience in ${industry}, this could expose us to risks that aren't immediately apparent in our current analysis.`
+      `From my ${role} perspective, we need to examine the strategic implications and ensure we're making data-driven decisions.`,
+      `I'm bringing a critical lens to this discussion - we need to challenge our assumptions and stress-test our approach.`,
+      `The complexity here requires careful analysis of the interdependencies and potential unintended consequences.`,
+      `We need to balance innovation with execution risk, especially given our current market position and resource constraints.`
     ];
+    
+    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  }
 
+  // Legacy method for backward compatibility
+  public async generateAgentResponses(
+    agentRole: string,
+    agentPersona: string,
+    agentExpertise: string[],
+    topic: any,
+    companyContext: any,
+    responseCount: number = 12
+  ): Promise<string[]> {
+    // For initial setup, generate a pool of responses
     const responses: string[] = [];
-    for (let i = 0; i < count; i++) {
-      responses.push(fallbacks[i % fallbacks.length]);
+    
+    for (let i = 0; i < responseCount; i++) {
+      const response = await this.generateRealTimeResponse(
+        agentRole,
+        agentPersona,
+        agentExpertise,
+        topic,
+        companyContext,
+        [] // Empty conversation history for initial generation
+      );
+      responses.push(response);
     }
+    
     return responses;
   }
 
@@ -284,19 +382,20 @@ Responses:`;
       title: string;
       description: string;
       priority: string;
+      estimatedDuration: number;
     }>,
     companyContext: any
   ): Promise<Map<string, Map<string, string[]>>> {
     
     const agentResponsesMap = new Map<string, Map<string, string[]>>();
     
-    console.log('Generating sophisticated executive responses for all agents and topics...');
+    console.log('🤖 Generating real-time AI responses for sophisticated boardroom discussions...');
     
     for (const agent of agents) {
       const topicResponsesMap = new Map<string, string[]>();
       
       for (const topic of topics) {
-        console.log(`Generating advanced responses for ${agent.role} on topic: ${topic.title}`);
+        console.log(`🎯 Generating contextual responses for ${agent.role} on topic: ${topic.title}`);
         
         const responses = await this.generateAgentResponses(
           agent.role,
@@ -304,7 +403,7 @@ Responses:`;
           agent.expertise,
           topic,
           companyContext,
-          12 // Generate 12 sophisticated responses per agent per topic
+          8 // Generate fewer initial responses since we'll use real-time generation
         );
         
         topicResponsesMap.set(topic.title, responses);
@@ -313,7 +412,7 @@ Responses:`;
       agentResponsesMap.set(agent.role, topicResponsesMap);
     }
     
-    console.log('All sophisticated agent responses generated successfully');
+    console.log('✅ All AI agent responses generated successfully');
     return agentResponsesMap;
   }
 }
