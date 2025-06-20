@@ -27,13 +27,16 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   const [currentMessages, setCurrentMessages] = useState<{[key: string]: string}>({});
   const [topicState, setTopicState] = useState<TopicState | null>(null);
   const [messageDurations, setMessageDurations] = useState<{[key: string]: number}>({});
-  const [isInterrupted, setIsInterrupted] = useState(false); // Track if conversation was interrupted
-  const [conversationContext, setConversationContext] = useState<Message[]>([]); // Store full conversation context
+  const [isInterrupted, setIsInterrupted] = useState(false);
+  const [conversationContext, setConversationContext] = useState<Message[]>([]);
+  const [activeTimeouts, setActiveTimeouts] = useState<{[key: string]: NodeJS.Timeout}>({});
 
   // Enhanced calculation for message display duration based on text complexity
   const calculateMessageDuration = (message: string): number => {
-    const baseTime = 4000; // Increased base time to 4 seconds minimum
-    const wordsPerMinute = 180; // Slightly slower reading speed for complex content
+    if (!message || message.trim().length === 0) return 4000;
+    
+    const baseTime = 5000; // Increased base time to 5 seconds minimum
+    const wordsPerMinute = 150; // Slower reading speed for complex executive content
     const words = message.trim().split(/\s+/).length;
     
     // Calculate reading time in milliseconds
@@ -41,41 +44,83 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     
     // Add extra time for complex sentences and punctuation
     const sentences = message.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
-    const complexityBonus = sentences * 500; // 500ms per sentence
+    const complexityBonus = sentences * 800; // 800ms per sentence
     
     // Add time for commas and semicolons (pause points)
     const pausePoints = (message.match(/[,;]/g) || []).length;
-    const pauseBonus = pausePoints * 300; // 300ms per pause point
+    const pauseBonus = pausePoints * 400; // 400ms per pause point
     
-    // Calculate total duration
-    const totalDuration = readingTime * 1.8 + complexityBonus + pauseBonus; // 1.8x multiplier for comprehension
+    // Add bonus for longer words (technical/business terms)
+    const longWords = message.split(/\s+/).filter(word => word.length > 8).length;
+    const technicalBonus = longWords * 200; // 200ms per complex word
     
-    // Ensure minimum 4 seconds, maximum 25 seconds for very long messages
-    const duration = Math.max(baseTime, Math.min(totalDuration, 25000));
+    // Calculate total duration with comprehension multiplier
+    const totalDuration = readingTime * 2.2 + complexityBonus + pauseBonus + technicalBonus;
     
-    console.log(`Message duration calculation:
-      Words: ${words}
-      Sentences: ${sentences}
-      Pause points: ${pausePoints}
-      Reading time: ${readingTime}ms
-      Complexity bonus: ${complexityBonus}ms
-      Pause bonus: ${pauseBonus}ms
-      Final duration: ${duration}ms (${(duration/1000).toFixed(1)}s)`);
+    // Ensure minimum 5 seconds, maximum 30 seconds for very long messages
+    const duration = Math.max(baseTime, Math.min(totalDuration, 30000));
+    
+    console.log(`📊 Message duration calculation for "${message.substring(0, 30)}...":
+      📝 Words: ${words} | Sentences: ${sentences} | Pause points: ${pausePoints} | Long words: ${longWords}
+      ⏱️ Reading time: ${(readingTime/1000).toFixed(1)}s
+      🧠 Complexity bonus: ${(complexityBonus/1000).toFixed(1)}s
+      ⏸️ Pause bonus: ${(pauseBonus/1000).toFixed(1)}s
+      🔬 Technical bonus: ${(technicalBonus/1000).toFixed(1)}s
+      ✅ Final duration: ${(duration/1000).toFixed(1)}s`);
     
     return duration;
   };
 
+  // Get position for agents distributed around the table (supports up to 8 positions)
+  const getAgentPosition = (index: number, total: number): 'top-left' | 'top-center' | 'top-right' | 'middle-left' | 'middle-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' => {
+    if (total === 1) return 'top-center';
+    if (total === 2) return index === 0 ? 'top-left' : 'top-right';
+    if (total === 3) {
+      const positions: ('top-left' | 'top-center' | 'top-right')[] = ['top-left', 'top-center', 'top-right'];
+      return positions[index];
+    }
+    if (total === 4) {
+      const positions: ('top-left' | 'top-right' | 'bottom-left' | 'bottom-right')[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+      return positions[index];
+    }
+    if (total === 5) {
+      const positions: ('top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-right')[] = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-right'];
+      return positions[index];
+    }
+    if (total === 6) {
+      const positions: ('top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right')[] = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+      return positions[index];
+    }
+    if (total === 7) {
+      const positions: ('top-left' | 'top-center' | 'top-right' | 'middle-left' | 'middle-right' | 'bottom-left' | 'bottom-right')[] = ['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-right'];
+      return positions[index];
+    }
+    // For 8+ agents, use all positions
+    const positions: ('top-left' | 'top-center' | 'top-right' | 'middle-left' | 'middle-right' | 'bottom-left' | 'bottom-center' | 'bottom-right')[] = 
+      ['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+    return positions[index % 8];
+  };
+
+  // Clear all active timeouts when component unmounts or conversation changes
+  useEffect(() => {
+    return () => {
+      Object.values(activeTimeouts).forEach(timeout => clearTimeout(timeout));
+    };
+  }, [activeTimeouts]);
+
   // Initialize topic in state manager when topic changes
   useEffect(() => {
     if (currentTopic && stateManager) {
-      // Initialize topic if not already tracked
+      // Clear any existing timeouts when topic changes
+      Object.values(activeTimeouts).forEach(timeout => clearTimeout(timeout));
+      setActiveTimeouts({});
+      
       let state = stateManager.getTopicState(currentTopic.id);
       if (!state) {
         stateManager.initializeTopic(currentTopic);
         state = stateManager.getTopicState(currentTopic.id);
       }
       
-      // Start topic if it's pending
       if (state && state.status === 'pending') {
         stateManager.startTopic(currentTopic.id);
         state = stateManager.getTopicState(currentTopic.id);
@@ -88,7 +133,6 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       setIsInterrupted(false);
       setConversationContext([]);
       
-      // Register completion callback
       if (state && onTopicStateChange) {
         stateManager.onTopicComplete(currentTopic.id, (topicId, completedState) => {
           setTopicState(completedState);
@@ -98,7 +142,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     }
   }, [currentTopic?.id, stateManager, onTopicStateChange]);
 
-  // Enhanced conversation system with interrupt handling
+  // Enhanced conversation system with proper timeout management
   useEffect(() => {
     if (isPaused || isInterrupting || agents.length === 0 || !currentTopic || !stateManager) return;
     
@@ -106,55 +150,52 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     if (!currentState || currentState.status === 'completed') return;
 
     const interval = setInterval(async () => {
-      // Check current state before proceeding
       const latestState = stateManager.getTopicState(currentTopic.id);
       if (!latestState || latestState.status === 'completed') {
         setActiveMembers([]);
         return;
       }
 
-      // Get all messages for this topic to maintain context
       const allMessages = stateManager.getTopicMessages(currentTopic.id);
       setConversationContext(allMessages);
 
-      // Select a random agent to speak
       const availableAgents = agents.filter(agent => agent.getAgent().isActive);
       if (availableAgents.length === 0) return;
 
       const randomAgent = availableAgents[Math.floor(Math.random() * availableAgents.length)];
-      
-      // Check if agent should respond based on context
-      const recentMessages = allMessages.slice(-5); // Get last 5 messages for context
+      const recentMessages = allMessages.slice(-5);
       const shouldRespond = randomAgent.shouldRespond(recentMessages, currentTopic);
       
       if (shouldRespond) {
         try {
-          // Generate contextual response based on full conversation history
           const response = await randomAgent.generateResponse('', {
-            recentMessages: allMessages, // Pass ALL messages for full context
+            recentMessages: allMessages,
             topic: currentTopic,
-            // Include user input context if conversation was interrupted
             userInput: isInterrupted ? 'Consider the user input and adjust the discussion accordingly' : undefined
           });
           
-          // Calculate duration for this specific message with enhanced timing
+          // Calculate duration with enhanced timing
           const duration = calculateMessageDuration(response);
+          const agentRole = randomAgent.getAgent().role;
           
-          console.log(`${randomAgent.getAgent().role} speaking for ${(duration/1000).toFixed(1)}s: "${response.substring(0, 50)}..."`);
+          console.log(`🎯 ${agentRole} speaking for ${(duration/1000).toFixed(1)}s: "${response.substring(0, 60)}..."`);
           
-          setActiveMembers([randomAgent.getAgent().role]);
+          // Clear any existing timeout for this agent
+          if (activeTimeouts[agentRole]) {
+            clearTimeout(activeTimeouts[agentRole]);
+          }
+          
+          setActiveMembers([agentRole]);
           setCurrentMessages(prev => ({
             ...prev,
-            [randomAgent.getAgent().role]: response
+            [agentRole]: response
           }));
           
-          // Store the duration for this agent's message
           setMessageDurations(prev => ({
             ...prev,
-            [randomAgent.getAgent().role]: duration
+            [agentRole]: duration
           }));
           
-          // Create message object
           const message: Message = {
             id: `msg-${Date.now()}`,
             agentId: randomAgent.getAgent().id,
@@ -163,44 +204,54 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             topicId: currentTopic.id
           };
           
-          // Add message to state manager
           stateManager.addMessage(currentTopic.id, message);
-          
-          // Update local state
           const updatedState = stateManager.getTopicState(currentTopic.id);
           setTopicState(updatedState);
-          
-          // Add to agent's conversation history
           randomAgent.addToHistory(message);
           
-          // Clear active member after calculated duration
-          setTimeout(() => {
-            setActiveMembers(prev => prev.filter(member => member !== randomAgent.getAgent().role));
+          // Set timeout to clear the message with proper duration
+          const timeoutId = setTimeout(() => {
+            console.log(`⏰ Clearing message for ${agentRole} after ${(duration/1000).toFixed(1)}s`);
+            setActiveMembers(prev => prev.filter(member => member !== agentRole));
             setCurrentMessages(prev => {
               const updated = { ...prev };
-              delete updated[randomAgent.getAgent().role];
+              delete updated[agentRole];
               return updated;
             });
             setMessageDurations(prev => {
               const updated = { ...prev };
-              delete updated[randomAgent.getAgent().role];
+              delete updated[agentRole];
+              return updated;
+            });
+            setActiveTimeouts(prev => {
+              const updated = { ...prev };
+              delete updated[agentRole];
               return updated;
             });
           }, duration);
+          
+          // Store the timeout ID
+          setActiveTimeouts(prev => ({
+            ...prev,
+            [agentRole]: timeoutId
+          }));
           
         } catch (error) {
           console.error('Error generating agent response:', error);
         }
       }
-    }, 4500); // Slightly increased interval to allow for longer reading times
+    }, 5000); // Increased interval to 5 seconds for better pacing
 
     return () => clearInterval(interval);
-  }, [isPaused, isInterrupting, agents, currentTopic, stateManager, isInterrupted]);
+  }, [isPaused, isInterrupting, agents, currentTopic, stateManager, isInterrupted, activeTimeouts]);
 
   const handlePauseToggle = () => {
     setIsPaused(!isPaused);
     if (!isPaused) {
       setActiveMembers([]);
+      // Clear all active timeouts when pausing
+      Object.values(activeTimeouts).forEach(timeout => clearTimeout(timeout));
+      setActiveTimeouts({});
     }
   };
 
@@ -208,11 +259,13 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     setIsInterrupting(true);
     setIsPaused(true);
     setActiveMembers([]);
+    // Clear all active timeouts when interrupting
+    Object.values(activeTimeouts).forEach(timeout => clearTimeout(timeout));
+    setActiveTimeouts({});
   };
 
   const handleSendMessage = async () => {
     if (userMessage.trim() && currentTopic && stateManager) {
-      // Create user message
       const userMsg: Message = {
         id: `msg-user-${Date.now()}`,
         agentId: 'user',
@@ -221,27 +274,19 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
         topicId: currentTopic.id
       };
       
-      // Add message to state manager
       stateManager.addMessage(currentTopic.id, userMsg);
-      
-      // Update local state
       const updatedState = stateManager.getTopicState(currentTopic.id);
       setTopicState(updatedState);
       
-      // Mark conversation as interrupted - this changes agent behavior
       setIsInterrupted(true);
       
-      // Clear any pre-generated responses for all agents since context has changed
       agents.forEach(agent => {
         if (agent.setTopicResponses) {
-          agent.setTopicResponses([]); // Clear pre-generated responses
+          agent.setTopicResponses([]);
         }
       });
       
-      // Get all conversation messages including the new user message
       const allMessages = stateManager.getTopicMessages(currentTopic.id);
-      
-      // Update all agents with the new conversation context
       agents.forEach(agent => {
         allMessages.forEach(msg => {
           if (!agent.getConversationHistory().find(histMsg => histMsg.id === msg.id)) {
@@ -273,16 +318,6 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
     setUserMessage('');
     setIsInterrupting(false);
     setIsPaused(false);
-  };
-
-  // Get positions for agents (distribute around table)
-  const getAgentPosition = (index: number, total: number): 'top-left' | 'top-center' | 'top-right' => {
-    if (total === 1) return 'top-center';
-    if (total === 2) return index === 0 ? 'top-left' : 'top-right';
-    
-    // For 3+ agents, distribute evenly
-    const positions: ('top-left' | 'top-center' | 'top-right')[] = ['top-left', 'top-center', 'top-right'];
-    return positions[index % 3];
   };
 
   const isTopicCompleted = topicState?.status === 'completed';
@@ -352,24 +387,22 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
         </div>
       )}
 
-      {/* Poker Table Surface */}
+      {/* Enhanced Poker Table Surface */}
       <div className="relative h-96 bg-gradient-to-br from-green-800/30 to-green-900/30 rounded-full border-8 border-amber-700/50 shadow-inner">
-        {/* Table felt pattern */}
         <div className="absolute inset-4 bg-gradient-to-br from-green-700/20 to-green-800/20 rounded-full"></div>
         
-        {/* Center logo/emblem */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <div className="w-20 h-20 bg-slate-800/70 rounded-full flex items-center justify-center border-2 border-amber-600/50">
             <Users className="w-8 h-8 text-amber-400" />
           </div>
         </div>
 
-        {/* Board Members */}
-        {agents.slice(0, 3).map((agent, index) => (
+        {/* Board Members with Dynamic Positioning */}
+        {agents.map((agent, index) => (
           <BoardMember
             key={agent.getAgent().id}
             name={agent.getAgent().role}
-            position={getAgentPosition(index, Math.min(agents.length, 3))}
+            position={getAgentPosition(index, agents.length)}
             message={currentMessages[agent.getAgent().role] || ''}
             isActive={activeMembers.includes(agent.getAgent().role) && !isPaused && !isInterrupting && !isTopicCompleted}
           />

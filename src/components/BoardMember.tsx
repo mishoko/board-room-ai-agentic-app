@@ -3,7 +3,7 @@ import { User } from 'lucide-react';
 
 interface BoardMemberProps {
   name: string;
-  position: 'top-left' | 'top-center' | 'top-right';
+  position: 'top-left' | 'top-center' | 'top-right' | 'middle-left' | 'middle-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
   message: string;
   isActive: boolean;
 }
@@ -17,6 +17,16 @@ const BoardMember: React.FC<BoardMemberProps> = ({ name, position, message, isAc
         return 'absolute top-4 left-1/2 transform -translate-x-1/2';
       case 'top-right':
         return 'absolute top-4 right-4';
+      case 'middle-left':
+        return 'absolute top-1/2 left-4 transform -translate-y-1/2';
+      case 'middle-right':
+        return 'absolute top-1/2 right-4 transform -translate-y-1/2';
+      case 'bottom-left':
+        return 'absolute bottom-4 left-4';
+      case 'bottom-center':
+        return 'absolute bottom-4 left-1/2 transform -translate-x-1/2';
+      case 'bottom-right':
+        return 'absolute bottom-4 right-4';
       default:
         return '';
     }
@@ -25,13 +35,46 @@ const BoardMember: React.FC<BoardMemberProps> = ({ name, position, message, isAc
   const getBubblePosition = () => {
     switch (position) {
       case 'top-left':
-        return 'absolute top-20 left-0 w-64';
+        return 'absolute top-20 left-0 w-80';
       case 'top-center':
-        return 'absolute top-20 left-1/2 transform -translate-x-1/2 w-64';
+        return 'absolute top-20 left-1/2 transform -translate-x-1/2 w-80';
       case 'top-right':
-        return 'absolute top-20 right-0 w-64';
+        return 'absolute top-20 right-0 w-80';
+      case 'middle-left':
+        return 'absolute top-1/2 left-20 transform -translate-y-1/2 w-80';
+      case 'middle-right':
+        return 'absolute top-1/2 right-20 transform -translate-y-1/2 w-80';
+      case 'bottom-left':
+        return 'absolute bottom-20 left-0 w-80';
+      case 'bottom-center':
+        return 'absolute bottom-20 left-1/2 transform -translate-x-1/2 w-80';
+      case 'bottom-right':
+        return 'absolute bottom-20 right-0 w-80';
       default:
         return '';
+    }
+  };
+
+  const getBubblePointer = () => {
+    switch (position) {
+      case 'top-left':
+        return 'absolute -top-2 left-8 w-4 h-4 bg-white transform rotate-45 shadow-sm';
+      case 'top-center':
+        return 'absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white rotate-45 shadow-sm';
+      case 'top-right':
+        return 'absolute -top-2 right-8 w-4 h-4 bg-white transform rotate-45 shadow-sm';
+      case 'middle-left':
+        return 'absolute top-1/2 -left-2 transform -translate-y-1/2 w-4 h-4 bg-white rotate-45 shadow-sm';
+      case 'middle-right':
+        return 'absolute top-1/2 -right-2 transform -translate-y-1/2 w-4 h-4 bg-white rotate-45 shadow-sm';
+      case 'bottom-left':
+        return 'absolute -bottom-2 left-8 w-4 h-4 bg-white transform rotate-45 shadow-sm';
+      case 'bottom-center':
+        return 'absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white rotate-45 shadow-sm';
+      case 'bottom-right':
+        return 'absolute -bottom-2 right-8 w-4 h-4 bg-white transform rotate-45 shadow-sm';
+      default:
+        return 'absolute -top-2 left-8 w-4 h-4 bg-white transform rotate-45 shadow-sm';
     }
   };
 
@@ -48,14 +91,14 @@ const BoardMember: React.FC<BoardMemberProps> = ({ name, position, message, isAc
       </div>
 
       {/* Speech Bubble */}
-      {isActive && (
+      {isActive && message && (
         <div className={getBubblePosition()}>
           <div className="bg-white rounded-lg shadow-xl p-4 relative animate-fadeIn">
             <div className="text-sm text-gray-800 leading-relaxed">
               {message}
             </div>
-            {/* Bubble pointer */}
-            <div className="absolute -top-2 left-8 w-4 h-4 bg-white transform rotate-45 shadow-sm"></div>
+            {/* Dynamic bubble pointer based on position */}
+            <div className={getBubblePointer()}></div>
           </div>
         </div>
       )}
