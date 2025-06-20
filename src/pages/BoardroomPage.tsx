@@ -3,7 +3,7 @@ import AnimatedBackground from '../components/AnimatedBackground';
 import BoardroomTable from '../components/BoardroomTable';
 import Timeline from '../components/Timeline';
 import SummaryPanel from '../components/SummaryPanel';
-import { BoardroomSession, Message, Timeline as TimelineType } from '../types';
+import { BoardroomSession, Message, Timeline as TimelineType, Topic } from '../types';
 import { CEOAgent, CTOAgent, CFOAgent } from '../agents/ExecutiveAgents';
 import { BoardAgentBase } from '../agents/BoardAgentBase';
 import { ArrowLeft, TrendingUp, DollarSign, Settings, Target, Users, Briefcase } from 'lucide-react';
@@ -17,6 +17,8 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
   const [currentSession, setCurrentSession] = useState<BoardroomSession>(session);
   const [agents, setAgents] = useState<BoardAgentBase[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [topicMessages, setTopicMessages] = useState<{[key: string]: Message[]}>({});
+  const [completedTopics, setCompletedTopics] = useState<Set<string>>(new Set());
 
   // Initialize agents based on session configuration
   useEffect(() => {
@@ -54,35 +56,98 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
 
   const handleUserMessage = async (message: string) => {
     console.log('User message:', message);
-    
-    // TODO: Implement sophisticated conversation branching
-    // This is where we'll integrate the agentic system to:
-    // 1. Process user input
-    // 2. Update conversation context
-    // 3. Generate agent responses
-    // 4. Create timeline branches
-    
-    // For now, just log the message
-    // Later this will trigger agent responses and timeline updates
+    // User messages are now handled directly in BoardroomTable
   };
 
-  // Generate sample summaries based on session topics
+  const handleTopicComplete = (topicId: string, messages: Message[]) => {
+    console.log(`Topic ${topicId} completed with ${messages.length} messages`);
+    
+    // Store messages for this topic
+    setTopicMessages(prev => ({
+      ...prev,
+      [topicId]: messages
+    }));
+    
+    // Mark topic as completed
+    setCompletedTopics(prev => new Set([...prev, topicId]));
+    
+    // Update session topics
+    setCurrentSession(prev => ({
+      ...prev,
+      topics: prev.topics.map(topic => 
+        topic.id === topicId 
+          ? { ...topic, status: 'completed' as const }
+          : topic
+      )
+    }));
+    
+    // Auto-select next incomplete topic
+    const currentTopicIndex = currentSession.topics.findIndex(t => t.id === topicId);
+    const nextTopic = currentSession.topics.find((topic, index) => 
+      index > currentTopicIndex && !completedTopics.has(topic.id)
+    );
+    
+    if (nextTopic) {
+      setTimeout(() => {
+        setSelectedTopic(nextTopic.id);
+      }, 2000); // 2 second delay before moving to next topic
+    }
+  };
+
+  // Generate summaries based on actual conversation messages
   const generateSummaries = () => {
     const summaries: { [key: string]: any } = {};
     
-    session.topics.forEach(topic => {
-      summaries[topic.id] = {
-        id: topic.id,
-        title: topic.title,
-        content: `The board discussed ${topic.title.toLowerCase()} with focus on ${session.companyContext.industry} industry challenges. Key considerations included the company's ${session.companyContext.stage} stage and current market position.`,
-        keyPoints: [
-          `Aligned with ${session.companyContext.name}'s strategic goals`,
-          `Considered industry-specific challenges in ${session.companyContext.industry}`,
-          `Evaluated resource requirements and timeline`,
-          `Discussed potential risks and mitigation strategies`
-        ],
-        icon: getTopicIcon(topic.title)
-      };
+    currentSession.topics.forEach(topic => {
+      const messages = topicMessages[topic.id] || [];
+      const isCompleted = completedTopics.has(topic.id);
+      
+      if (isCompleted && messages.length > 0) {
+        // Generate summary from actual conversation
+        const agentMessages = messages.filter(msg => msg.agentId !== 'user');
+        const userMessages = messages.filter(msg => msg.agentId === 'user');
+        
+        const keyPoints = [
+          `Discussion involved ${new Set(agentMessages.map(msg => {
+            const agent = agents.find(a => a.getAgent().id === msg.agentId);
+            return agent?.getAgent().role || 'Unknown';
+          })).size} board members`,
+          `${agentMessages.length} executive insights shared`,
+          userMessages.length > 0 ? `${userMessages.length} stakeholder input(s) received` : 'No additional stakeholder input',
+          `Completed in approximately ${Math.ceil(messages.length * 0.5)} minutes`
+        ];
+        
+        // Extract key themes from messages (simple keyword analysis)
+        const allText = messages.map(msg => msg.text).join(' ').toLowerCase();
+        const themes = [];
+        if (allText.includes('strategy') || allText.includes('strategic')) themes.push('Strategic planning discussed');
+        if (allText.includes('risk') || allText.includes('challenge')) themes.push('Risk assessment conducted');
+        if (allText.includes('budget') || allText.includes('cost') || allText.includes('financial')) themes.push('Financial implications reviewed');
+        if (allText.includes('technology') || allText.includes('technical')) themes.push('Technical considerations evaluated');
+        
+        keyPoints.push(...themes);
+        
+        summaries[topic.id] = {
+          id: topic.id,
+          title: topic.title,
+          content: `The board completed a comprehensive discussion on ${topic.title.toLowerCase()}. The conversation involved ${agentMessages.length} executive contributions and covered key aspects relevant to ${currentSession.companyContext.name}'s ${currentSession.companyContext.stage} stage in the ${currentSession.companyContext.industry} industry. The discussion addressed strategic, operational, and risk considerations.`,
+          keyPoints: keyPoints.slice(0, 6), // Limit to 6 key points
+          icon: getTopicIcon(topic.title)
+        };
+      } else {
+        // Placeholder for incomplete topics
+        summaries[topic.id] = {
+          id: topic.id,
+          title: topic.title,
+          content: isCompleted 
+            ? `Discussion on ${topic.title.toLowerCase()} has been completed but no detailed conversation was recorded.`
+            : `Discussion on ${topic.title.toLowerCase()} is pending or in progress.`,
+          keyPoints: isCompleted 
+            ? ['Discussion completed', 'Summary will be available once conversation data is processed']
+            : ['Discussion not yet started', 'Select this topic to begin the conversation'],
+          icon: getTopicIcon(topic.title)
+        };
+      }
     });
     
     return summaries;
@@ -103,15 +168,18 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
     }
   };
 
-  // Convert session topics to timeline format
-  const timelineTopics = session.topics.map(topic => ({
+  // Convert session topics to timeline format with proper status
+  const timelineTopics = currentSession.topics.map(topic => ({
     id: topic.id,
     title: topic.title,
-    status: topic.status === 'completed' ? 'closed' as const : 'open' as const,
-    timestamp: `${topic.estimatedDuration} min discussion`
+    status: completedTopics.has(topic.id) ? 'closed' as const : 'open' as const,
+    timestamp: completedTopics.has(topic.id) 
+      ? `Completed • ${topicMessages[topic.id]?.length || 0} messages`
+      : `${topic.estimatedDuration} min discussion`
   }));
 
   const summaries = generateSummaries();
+  const currentTopicData = selectedTopic ? currentSession.topics.find(t => t.id === selectedTopic) : undefined;
 
   return (
     <div className="min-h-screen bg-slate-900 relative overflow-hidden">
@@ -135,7 +203,7 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
               {session.companyContext.name} Boardroom
             </h1>
             <p className="text-slate-300">
-              {session.companyContext.industry} • {session.agents.length} executives • {session.topics.length} topics
+              {session.companyContext.industry} • {session.agents.length} executives • {completedTopics.size}/{session.topics.length} topics completed
             </p>
           </div>
           
@@ -152,8 +220,9 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({ session, onBackToSetup })
             <div className="w-full max-w-4xl">
               <BoardroomTable 
                 onUserMessage={handleUserMessage}
+                onTopicComplete={handleTopicComplete}
                 agents={agents}
-                currentTopic={selectedTopic ? session.topics.find(t => t.id === selectedTopic) : undefined}
+                currentTopic={currentTopicData}
               />
             </div>
           </div>
