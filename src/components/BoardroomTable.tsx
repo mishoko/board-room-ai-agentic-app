@@ -487,7 +487,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             }
           `}>
             {isHoveringBubble 
-              ? 'Reading paused - move cursor to continue' 
+              ? 'Hover off to continue with the conversation' 
               : isInterrupting 
                 ? 'Waiting for your input...' 
                 : 'Conversation paused - messages visible'

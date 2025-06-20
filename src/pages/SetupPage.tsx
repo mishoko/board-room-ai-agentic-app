@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Plus, X, Building, Target, FileText, ArrowRight, Loader2, Info } from 'lucide-react';
+import { Users, Plus, X, Building, Target, FileText, ArrowRight, Loader2, Info, AlertTriangle } from 'lucide-react';
 import { Agent, Topic, CompanyContext, BoardroomSession } from '../types';
 import { LLMService } from '../services/LLMService';
 
@@ -194,12 +194,71 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     }));
   };
 
+  // Enhanced topic validation function
+  const validateTopic = (topic: Topic): { isValid: boolean; issues: string[] } => {
+    const issues: string[] = [];
+    
+    // Check title length and content
+    if (!topic.title.trim()) {
+      issues.push('Title is required');
+    } else if (topic.title.trim().length < 5) {
+      issues.push('Title too short - needs at least 5 characters for meaningful discussion');
+    } else if (topic.title.trim().length > 100) {
+      issues.push('Title too long - keep it concise for boardroom discussion');
+    }
+    
+    // Check for single words or very basic titles
+    const titleWords = topic.title.trim().split(/\s+/);
+    if (titleWords.length === 1) {
+      issues.push('Single word titles don\'t provide enough context for executive discussion');
+    } else if (titleWords.length === 2 && titleWords.every(word => word.length <= 4)) {
+      issues.push('Title needs more detail to generate meaningful boardroom debate');
+    }
+    
+    // Check description quality
+    if (topic.description.trim().length > 0) {
+      if (topic.description.trim().length < 20) {
+        issues.push('Description too brief - provide more context for richer discussion');
+      }
+    } else if (topic.title.trim().length < 15) {
+      issues.push('Either add a description or make the title more descriptive');
+    }
+    
+    // Check for common low-quality patterns
+    const lowQualityPatterns = [
+      /^(test|testing|sample|example|demo)$/i,
+      /^[a-z]$/i, // Single letter
+      /^\d+$/,    // Just numbers
+      /^(a|an|the)\s+\w+$/i, // Just article + single word
+    ];
+    
+    if (lowQualityPatterns.some(pattern => pattern.test(topic.title.trim()))) {
+      issues.push('Topic appears to be a placeholder - create a real business topic for meaningful discussion');
+    }
+    
+    return {
+      isValid: issues.length === 0,
+      issues
+    };
+  };
+
+  // Get validation status for all topics
+  const getTopicValidations = () => {
+    return topics.map(topic => ({
+      id: topic.id,
+      ...validateTopic(topic)
+    }));
+  };
+
   const canProceed = () => {
     switch (currentStep) {
       case 'agents':
         return selectedAgents.length >= 2;
       case 'topics':
-        return topics.length > 0 && topics.every(topic => topic.title.trim());
+        const validations = getTopicValidations();
+        return topics.length > 0 && 
+               topics.every(topic => topic.title.trim()) && 
+               validations.every(v => v.isValid);
       case 'context':
         return companyContext.name.trim() && companyContext.industry.trim();
       case 'review':
@@ -363,90 +422,131 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     </div>
   );
 
-  const renderTopicSetup = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-white mb-2">Strategic Discussion Topics</h2>
-        <p className="text-slate-300">Define complex business topics that will generate intense executive debate</p>
-        <p className="text-sm text-slate-400 mt-1">Each topic will be thoroughly analyzed from multiple C-level perspectives with AI-powered insights</p>
-      </div>
-
+  const renderTopicSetup = () => {
+    const topicValidations = getTopicValidations();
+    
+    return (
       <div className="space-y-6">
-        {topics.map((topic) => (
-          <div key={topic.id} className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 shadow-lg">
-            <div className="flex items-start gap-4">
-              <div className="flex-1 space-y-4">
-                <input
-                  type="text"
-                  placeholder="Strategic topic title (e.g., 'Market Expansion Strategy', 'Technology Infrastructure Overhaul')..."
-                  value={topic.title}
-                  onChange={(e) => updateTopic(topic.id, { title: e.target.value })}
-                  className="w-full bg-slate-700 text-white rounded-lg px-4 py-3 border border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-lg font-medium"
-                />
-                <textarea
-                  placeholder="Detailed topic description - provide context, challenges, and key considerations that will drive executive discussion..."
-                  value={topic.description}
-                  onChange={(e) => updateTopic(topic.id, { description: e.target.value })}
-                  className="w-full bg-slate-700 text-white rounded-lg px-4 py-3 border border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-24 resize-none"
-                />
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-slate-300">Priority Level:</label>
-                    <select
-                      value={topic.priority}
-                      onChange={(e) => updateTopic(topic.id, { priority: e.target.value as Topic['priority'] })}
-                      className="bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500"
-                    >
-                      <option value="low">Low Priority</option>
-                      <option value="medium">Medium Priority</option>
-                      <option value="high">High Priority - Critical</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-slate-300">Discussion Duration:</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="60"
-                      value={topic.estimatedDuration}
-                      onChange={(e) => updateTopic(topic.id, { estimatedDuration: parseInt(e.target.value) })}
-                      className="w-20 bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500"
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-2">Strategic Discussion Topics</h2>
+          <p className="text-slate-300">Define complex business topics that will generate intense executive debate</p>
+          <p className="text-sm text-slate-400 mt-1">Each topic will be thoroughly analyzed from multiple C-level perspectives with AI-powered insights</p>
+        </div>
+
+        <div className="space-y-6">
+          {topics.map((topic, index) => {
+            const validation = topicValidations.find(v => v.id === topic.id);
+            const hasIssues = validation && !validation.isValid;
+            
+            return (
+              <div key={topic.id} className={`bg-slate-800/50 rounded-xl p-6 border shadow-lg ${
+                hasIssues ? 'border-red-500/50' : 'border-slate-700'
+              }`}>
+                <div className="flex items-start gap-4">
+                  <div className="flex-1 space-y-4">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Strategic topic title (e.g., 'Market Expansion Strategy', 'Technology Infrastructure Overhaul')..."
+                        value={topic.title}
+                        onChange={(e) => updateTopic(topic.id, { title: e.target.value })}
+                        className={`w-full bg-slate-700 text-white rounded-lg px-4 py-3 border focus:ring-1 focus:ring-blue-500 text-lg font-medium ${
+                          hasIssues ? 'border-red-500/50' : 'border-slate-600 focus:border-blue-500'
+                        }`}
+                      />
+                      {hasIssues && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <AlertTriangle className="w-5 h-5 text-red-400" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Validation Issues */}
+                    {hasIssues && validation && (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-red-300 mb-1">Topic needs improvement:</p>
+                            <ul className="text-xs text-red-200 space-y-1">
+                              {validation.issues.map((issue, idx) => (
+                                <li key={idx} className="flex items-start gap-1">
+                                  <span className="text-red-400">•</span>
+                                  <span>{issue}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <textarea
+                      placeholder="Detailed topic description - provide context, challenges, and key considerations that will drive executive discussion..."
+                      value={topic.description}
+                      onChange={(e) => updateTopic(topic.id, { description: e.target.value })}
+                      className="w-full bg-slate-700 text-white rounded-lg px-4 py-3 border border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-24 resize-none"
                     />
-                    <span className="text-sm text-slate-400">minutes</span>
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-slate-300">Priority Level:</label>
+                        <select
+                          value={topic.priority}
+                          onChange={(e) => updateTopic(topic.id, { priority: e.target.value as Topic['priority'] })}
+                          className="bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500"
+                        >
+                          <option value="low">Low Priority</option>
+                          <option value="medium">Medium Priority</option>
+                          <option value="high">High Priority - Critical</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-slate-300">Discussion Duration:</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={topic.estimatedDuration}
+                          onChange={(e) => updateTopic(topic.id, { estimatedDuration: parseInt(e.target.value) })}
+                          className="w-20 bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500"
+                        />
+                        <span className="text-sm text-slate-400">minutes</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-slate-500 bg-slate-700/30 rounded-lg p-3">
+                      <strong>AI Conversation Scaling:</strong> {
+                        topic.estimatedDuration <= 5 
+                          ? `Quick ${topic.estimatedDuration}-minute discussion will have rapid-fire exchanges (${Math.max(4, topic.estimatedDuration * 1)} messages, 8s intervals)`
+                          : topic.estimatedDuration <= 10
+                            ? `Focused ${topic.estimatedDuration}-minute discussion with moderate pacing (${Math.round(topic.estimatedDuration * 1.2)} messages, 6s intervals)`
+                            : topic.estimatedDuration <= 20
+                              ? `Strategic ${topic.estimatedDuration}-minute discussion with thoughtful analysis (${Math.round(topic.estimatedDuration * 0.8)} messages, 4.5s intervals)`
+                              : `Deep ${topic.estimatedDuration}-minute discussion with comprehensive insights (${Math.round(topic.estimatedDuration * 0.6)} messages, 3.5s intervals)`
+                      }
+                    </div>
                   </div>
-                </div>
-                <div className="text-xs text-slate-500 bg-slate-700/30 rounded-lg p-3">
-                  <strong>AI Conversation Scaling:</strong> {
-                    topic.estimatedDuration <= 5 
-                      ? `Quick ${topic.estimatedDuration}-minute discussion will have rapid-fire exchanges (${Math.max(4, topic.estimatedDuration * 1)} messages, 8s intervals)`
-                      : topic.estimatedDuration <= 10
-                        ? `Focused ${topic.estimatedDuration}-minute discussion with moderate pacing (${Math.round(topic.estimatedDuration * 1.2)} messages, 6s intervals)`
-                        : topic.estimatedDuration <= 20
-                          ? `Strategic ${topic.estimatedDuration}-minute discussion with thoughtful analysis (${Math.round(topic.estimatedDuration * 0.8)} messages, 4.5s intervals)`
-                          : `Deep ${topic.estimatedDuration}-minute discussion with comprehensive insights (${Math.round(topic.estimatedDuration * 0.6)} messages, 3.5s intervals)`
-                  }
+                  <button
+                    onClick={() => removeTopic(topic.id)}
+                    className="text-red-400 hover:text-red-300 p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => removeTopic(topic.id)}
-                className="text-red-400 hover:text-red-300 p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        ))}
+            );
+          })}
 
-        <button
-          onClick={addTopic}
-          className="w-full border-2 border-dashed border-slate-600 rounded-xl p-6 text-slate-400 hover:border-slate-500 hover:text-slate-300 hover:bg-slate-800/30 transition-all duration-200 flex items-center justify-center gap-3"
-        >
-          <Plus className="w-5 h-5" />
-          <span className="font-medium">Add Strategic Discussion Topic</span>
-        </button>
+          <button
+            onClick={addTopic}
+            className="w-full border-2 border-dashed border-slate-600 rounded-xl p-6 text-slate-400 hover:border-slate-500 hover:text-slate-300 hover:bg-slate-800/30 transition-all duration-200 flex items-center justify-center gap-3"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="font-medium">Add Strategic Discussion Topic</span>
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderContextSetup = () => {
     return (
