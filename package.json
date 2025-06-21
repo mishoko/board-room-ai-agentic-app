@@ -1,13 +1,47 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "ai-agentic-boardroom",
+  "version": "1.0.0",
+  "description": "AI-powered executive boardroom simulation with sophisticated C-level agents for strategic discussions",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "keywords": [
+    "ai",
+    "boardroom",
+    "executive",
+    "simulation",
+    "strategic-planning",
+    "c-suite",
+    "business-intelligence"
+  ],
+  "author": "AI Boardroom Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/ai-agentic-boardroom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/ai-agentic-boardroom/issues"
+  },
+  "homepage": "https://github.com/your-org/ai-agentic-boardroom#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "version:patch": "npm version patch --no-git-tag-version && npm run version:update",
+    "version:minor": "npm version minor --no-git-tag-version && npm run version:update",
+    "version:major": "npm version major --no-git-tag-version && npm run version:update",
+    "version:update": "node scripts/update-version.js",
+    "version:tag": "node scripts/create-version-tag.js",
+    "changelog": "node scripts/generate-changelog.js",
+    "release:patch": "npm run version:patch && npm run changelog && npm run version:tag",
+    "release:minor": "npm run version:minor && npm run changelog && npm run version:tag",
+    "release:major": "npm run version:major && npm run changelog && npm run version:tag",
+    "version:info": "node scripts/version-info.js"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",
