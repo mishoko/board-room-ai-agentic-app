@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Building2, Target, Clock, ArrowRight, Settings, TestTube } from 'lucide-react';
+import { Users, Building2, Target, Clock, ArrowRight, Settings, TestTube, Wifi } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import LLMTestPanel from '../components/LLMTestPanel';
 import { Agent, Topic, CompanyContext, BoardroomSession } from '../types';
@@ -10,7 +10,8 @@ interface SetupPageProps {
 }
 
 const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
-  const [currentStep, setCurrentStep] = useState<'company' | 'agents' | 'topics' | 'test'>('company');
+  const [currentStep, setCurrentStep] = useState<'company' | 'agents' | 'topics'>('company');
+  const [showLLMTest, setShowLLMTest] = useState(false);
   const [companyContext, setCompanyContext] = useState<CompanyContext>({
     name: '',
     industry: '',
@@ -248,8 +249,6 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         return selectedAgents.length > 0;
       case 'topics':
         return topics.length > 0 && topics.every(topic => topic.title && topic.description);
-      case 'test':
-        return true;
       default:
         return false;
     }
@@ -458,19 +457,6 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
           </div>
         );
 
-      case 'test':
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <TestTube className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-white mb-2">Test LLM Connection</h2>
-              <p className="text-slate-300">Verify your local LLM is working before starting the session</p>
-            </div>
-
-            <LLMTestPanel />
-          </div>
-        );
-
       default:
         return null;
     }
@@ -479,8 +465,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const steps = [
     { id: 'company', label: 'Company', icon: Building2 },
     { id: 'agents', label: 'Executives', icon: Users },
-    { id: 'topics', label: 'Topics', icon: Target },
-    { id: 'test', label: 'Test LLM', icon: TestTube }
+    { id: 'topics', label: 'Topics', icon: Target }
   ];
 
   return (
@@ -559,7 +544,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
               Previous
             </button>
 
-            {currentStep === 'test' ? (
+            {currentStep === 'topics' ? (
               <button
                 onClick={handleStartSession}
                 disabled={!canProceed() || isGenerating}
@@ -607,6 +592,36 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
           </div>
         </div>
       </div>
+
+      {/* LLM Test Add-on Button (similar to version badge) */}
+      <button
+        onClick={() => setShowLLMTest(true)}
+        className="fixed bottom-4 left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 shadow-lg bg-slate-800/80 text-slate-300 border border-slate-600/50 hover:bg-slate-700/80 backdrop-blur-sm"
+        title="Test LLM Connection"
+      >
+        <Wifi className="w-3 h-3" />
+        <span>Test LLM</span>
+      </button>
+
+      {/* LLM Test Modal */}
+      {showLLMTest && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-slate-700 shadow-2xl">
+            <div className="sticky top-0 bg-slate-800 border-b border-slate-700 p-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">LLM Connection Test</h2>
+              <button
+                onClick={() => setShowLLMTest(false)}
+                className="text-slate-400 hover:text-white p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <LLMTestPanel />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
