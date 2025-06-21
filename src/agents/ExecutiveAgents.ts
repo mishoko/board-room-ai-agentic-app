@@ -245,7 +245,7 @@ export class CTOAgent extends BoardAgentBase {
   }
 }
 
-// Similar pattern for other agents - CFO, CMO, CHRO, COO
+// CFO Agent - UPGRADED to match CEO/CTO pattern
 export class CFOAgent extends BoardAgentBase {
   private responsePool: string[] = []
   private usedResponses: Set<string> = new Set()
@@ -254,6 +254,9 @@ export class CFOAgent extends BoardAgentBase {
   public setTopicResponses(responses: string[]): void {
     this.responsePool = responses
     this.usedResponses.clear()
+    console.log(
+      `CFO agent received ${responses.length} pre-generated responses (not used in comment mode)`
+    )
   }
 
   async generateResponse(
@@ -270,6 +273,12 @@ export class CFOAgent extends BoardAgentBase {
         text: msg.text,
         timestamp: msg.timestamp,
       }))
+
+      console.log(
+        `🎯 CFO generating response with ${
+          conversationHistory.length
+        } recent messages, userInput: ${context.userInput ? "YES" : "NO"}`
+      )
 
       const response = await this.llmService.generateRealTimeResponse(
         this.agent.role,
@@ -302,6 +311,27 @@ export class CFOAgent extends BoardAgentBase {
     topic: Topic
     userInput?: string
   }): string {
+    // Enhanced fallback that considers recent context and user input
+    if (context.userInput) {
+      return `Your financial concerns align with my risk assessment - the cost structure and revenue assumptions need immediate revision based on the market realities you've described.`
+    }
+
+    // Analyze recent conversation for challenging responses
+    const recentText = context.recentMessages
+      .slice(-2)
+      .map((m) => m.text)
+      .join(" ")
+      .toLowerCase()
+
+    if (recentText.includes("technical") || recentText.includes("architecture")) {
+      return `The cost projections underestimate the technical infrastructure requirements - we're looking at significant architecture changes that will impact our development roadmap for 12+ months.`
+    } else if (recentText.includes("market") || recentText.includes("customer")) {
+      return `The market requirements you've described demand technical capabilities we don't currently have - we're potentially promising functionality that our architecture can't deliver reliably.`
+    } else if (recentText.includes("strategy") || recentText.includes("growth")) {
+      return `The financial framework for evaluating this needs to account for opportunity costs and capital allocation efficiency across our entire portfolio.`
+    }
+
+    // Default challenging CFO responses
     const financialFrameworks = [
       `The capital efficiency of this is questionable - we're deploying significant resources for returns that don't meet our weighted average cost of capital thresholds.`,
       `I'm concerned about the cash flow timing for this - the J-curve effect could strain liquidity during our peak growth phase when we need maximum financial flexibility.`,
@@ -344,6 +374,7 @@ export class CFOAgent extends BoardAgentBase {
   }
 }
 
+// CMO Agent - UPGRADED to match CEO/CTO pattern
 export class CMOAgent extends BoardAgentBase {
   private responsePool: string[] = []
   private usedResponses: Set<string> = new Set()
@@ -352,6 +383,9 @@ export class CMOAgent extends BoardAgentBase {
   public setTopicResponses(responses: string[]): void {
     this.responsePool = responses
     this.usedResponses.clear()
+    console.log(
+      `CMO agent received ${responses.length} pre-generated responses (not used in comment mode)`
+    )
   }
 
   async generateResponse(
@@ -368,6 +402,12 @@ export class CMOAgent extends BoardAgentBase {
         text: msg.text,
         timestamp: msg.timestamp,
       }))
+
+      console.log(
+        `🎯 CMO generating response with ${
+          conversationHistory.length
+        } recent messages, userInput: ${context.userInput ? "YES" : "NO"}`
+      )
 
       const response = await this.llmService.generateRealTimeResponse(
         this.agent.role,
@@ -400,6 +440,27 @@ export class CMOAgent extends BoardAgentBase {
     topic: Topic
     userInput?: string
   }): string {
+    // Enhanced fallback that considers recent context and user input
+    if (context.userInput) {
+      return `Your market insight reveals a fundamental misalignment between our positioning and customer expectations - we need to reassess our brand strategy and messaging framework.`
+    }
+
+    // Analyze recent conversation for challenging responses
+    const recentText = context.recentMessages
+      .slice(-2)
+      .map((m) => m.text)
+      .join(" ")
+      .toLowerCase()
+
+    if (recentText.includes("cost") || recentText.includes("budget")) {
+      return `The marketing budget allocation doesn't align with customer acquisition realities in ${this.companyContext.industry} - we're potentially underfunding the channels that drive actual conversions.`
+    } else if (recentText.includes("technical") || recentText.includes("product")) {
+      return `The customer perspective you've shared suggests our go-to-market assumptions are flawed - we're potentially targeting the wrong segments with the wrong value proposition.`
+    } else if (recentText.includes("strategy") || recentText.includes("growth")) {
+      return `The competitive differentiation story isn't clear - are we creating genuine innovation or just achieving feature parity with market leaders?`
+    }
+
+    // Default challenging CMO responses
     const marketingFrameworks = [
       `The customer segmentation for this is flawed - we're targeting demographics rather than behavioral cohorts, which explains why our messaging isn't resonating with actual buyers.`,
       `Brand differentiation for this is weak - we're competing on features rather than creating an emotional connection that drives customer loyalty and premium pricing power.`,
@@ -441,6 +502,7 @@ export class CMOAgent extends BoardAgentBase {
   }
 }
 
+// CHRO Agent - UPGRADED to match CEO/CTO pattern
 export class CHROAgent extends BoardAgentBase {
   private responsePool: string[] = []
   private usedResponses: Set<string> = new Set()
@@ -449,6 +511,9 @@ export class CHROAgent extends BoardAgentBase {
   public setTopicResponses(responses: string[]): void {
     this.responsePool = responses
     this.usedResponses.clear()
+    console.log(
+      `CHRO agent received ${responses.length} pre-generated responses (not used in comment mode)`
+    )
   }
 
   async generateResponse(
@@ -465,6 +530,12 @@ export class CHROAgent extends BoardAgentBase {
         text: msg.text,
         timestamp: msg.timestamp,
       }))
+
+      console.log(
+        `🎯 CHRO generating response with ${
+          conversationHistory.length
+        } recent messages, userInput: ${context.userInput ? "YES" : "NO"}`
+      )
 
       const response = await this.llmService.generateRealTimeResponse(
         this.agent.role,
@@ -497,6 +568,27 @@ export class CHROAgent extends BoardAgentBase {
     topic: Topic
     userInput?: string
   }): string {
+    // Enhanced fallback that considers recent context and user input
+    if (context.userInput) {
+      return `The organizational concerns you've raised highlight critical people risks we need to address - the cultural and talent implications could undermine our execution capabilities.`
+    }
+
+    // Analyze recent conversation for challenging responses
+    const recentText = context.recentMessages
+      .slice(-2)
+      .map((m) => m.text)
+      .join(" ")
+      .toLowerCase()
+
+    if (recentText.includes("cost") || recentText.includes("budget")) {
+      return `The talent acquisition and retention costs aren't adequately factored into these projections - we're potentially facing 40-60% higher people costs than modeled.`
+    } else if (recentText.includes("technical") || recentText.includes("system")) {
+      return `The workforce perspective you've shared reveals potential resistance that could derail implementation - we need to invest in change management and employee engagement.`
+    } else if (recentText.includes("growth") || recentText.includes("scale")) {
+      return `The leadership development pipeline isn't prepared for this - we lack the management capabilities needed to scale this initiative effectively across the organization.`
+    }
+
+    // Default challenging CHRO responses
     const organizationalFrameworks = [
       `The change management requirements for this exceed our organizational capacity - we're already managing multiple transformation initiatives that are straining our people and culture.`,
       `Performance management implications of this are complex - existing KPIs don't capture the new behaviors we need, and our review processes aren't designed for this type of work.`,
@@ -539,6 +631,7 @@ export class CHROAgent extends BoardAgentBase {
   }
 }
 
+// COO Agent - UPGRADED to match CEO/CTO pattern
 export class COOAgent extends BoardAgentBase {
   private responsePool: string[] = []
   private usedResponses: Set<string> = new Set()
@@ -547,6 +640,9 @@ export class COOAgent extends BoardAgentBase {
   public setTopicResponses(responses: string[]): void {
     this.responsePool = responses
     this.usedResponses.clear()
+    console.log(
+      `COO agent received ${responses.length} pre-generated responses (not used in comment mode)`
+    )
   }
 
   async generateResponse(
@@ -563,6 +659,12 @@ export class COOAgent extends BoardAgentBase {
         text: msg.text,
         timestamp: msg.timestamp,
       }))
+
+      console.log(
+        `🎯 COO generating response with ${
+          conversationHistory.length
+        } recent messages, userInput: ${context.userInput ? "YES" : "NO"}`
+      )
 
       const response = await this.llmService.generateRealTimeResponse(
         this.agent.role,
@@ -595,6 +697,27 @@ export class COOAgent extends BoardAgentBase {
     topic: Topic
     userInput?: string
   }): string {
+    // Enhanced fallback that considers recent context and user input
+    if (context.userInput) {
+      return `Your operational insight exposes execution risks that could impact service delivery - we need to reassess our process maturity and operational readiness.`
+    }
+
+    // Analyze recent conversation for challenging responses
+    const recentText = context.recentMessages
+      .slice(-2)
+      .map((m) => m.text)
+      .join(" ")
+      .toLowerCase()
+
+    if (recentText.includes("cost") || recentText.includes("budget")) {
+      return `The operational cost implications are more complex than the financial projections suggest - we're looking at significant process redesign and quality assurance overhead.`
+    } else if (recentText.includes("technical") || recentText.includes("system")) {
+      return `The implementation challenges you've described require us to fundamentally rethink our operational approach - we may be underestimating the complexity and resource requirements.`
+    } else if (recentText.includes("growth") || recentText.includes("scale")) {
+      return `Your perspective on operational scalability suggests we're not prepared for the volume and complexity this would introduce - our current systems and processes need significant enhancement.`
+    }
+
+    // Default challenging COO responses
     const operationalFrameworks = [
       `The operational risk profile of this introduces single points of failure that could cascade through our entire service delivery - we need redundancy and failover processes we don't currently have.`,
       `Quality assurance frameworks can't adequately monitor this - we're introducing complexity that our current systems can't detect or prevent from impacting customers.`,
