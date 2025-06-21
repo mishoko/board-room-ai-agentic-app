@@ -704,6 +704,36 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                 + Add Topic
               </button>
             </div>
+
+            {/* Start Session Button in Topics Step */}
+            {canProceed() && (
+              <div className="text-center pt-6 border-t border-slate-600">
+                <button
+                  onClick={handleStartSession}
+                  disabled={isGenerating}
+                  className={`
+                    flex items-center gap-3 px-8 py-4 rounded-lg font-medium text-lg transition-all duration-200 mx-auto
+                    ${
+                      isGenerating
+                        ? "bg-slate-600 text-slate-400 cursor-not-allowed"
+                        : "bg-purple-600 text-white hover:bg-purple-700 hover:scale-105"
+                    }
+                  `}
+                >
+                  {isGenerating ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Starting Session...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-5 h-5" />
+                      Start Boardroom Session
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         )
 
@@ -817,7 +847,6 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     { id: "company", label: "Company", icon: Building2 },
     { id: "agents", label: "Executives", icon: Users },
     { id: "topics", label: "Topics", icon: Target },
-    { id: "start", label: "Start", icon: Play },
   ]
 
   return (
@@ -901,55 +930,28 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
               Previous
             </button>
 
-            {currentStep === "start" ? (
-              <button
-                onClick={handleStartSession}
-                disabled={!canProceed() || isGenerating}
-                className={`
-                  flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200
-                  ${
-                    canProceed() && !isGenerating
-                      ? "bg-purple-600 text-white hover:bg-purple-700"
-                      : "bg-slate-600 text-slate-400 cursor-not-allowed"
-                  }
-                `}
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Starting Session...
-                  </>
-                ) : (
-                  <>
-                    Start Boardroom Session
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  const currentIndex = steps.findIndex(
-                    (s) => s.id === currentStep
-                  )
-                  if (currentIndex < steps.length - 1) {
-                    setCurrentStep(steps[currentIndex + 1].id as any)
-                  }
-                }}
-                disabled={!canProceed()}
-                className={`
-                  flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200
-                  ${
-                    canProceed()
-                      ? "bg-purple-600 text-white hover:bg-purple-700"
-                      : "bg-slate-600 text-slate-400 cursor-not-allowed"
-                  }
-                `}
-              >
-                Next
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            )}
+            <button
+              onClick={() => {
+                const currentIndex = steps.findIndex(
+                  (s) => s.id === currentStep
+                )
+                if (currentIndex < steps.length - 1) {
+                  setCurrentStep(steps[currentIndex + 1].id as any)
+                }
+              }}
+              disabled={!canProceed()}
+              className={`
+                flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200
+                ${
+                  canProceed()
+                    ? "bg-purple-600 text-white hover:bg-purple-700"
+                    : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                }
+              `}
+            >
+              Next
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
