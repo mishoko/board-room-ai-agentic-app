@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Building2, Target, Clock, ArrowRight, Settings, TestTube, Wifi } from 'lucide-react';
+import { Users, Building2, Target, Clock, ArrowRight, Settings, TestTube, Wifi, Play } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import LLMTestPanel from '../components/LLMTestPanel';
 import { Agent, Topic, CompanyContext, BoardroomSession } from '../types';
@@ -10,7 +10,7 @@ interface SetupPageProps {
 }
 
 const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
-  const [currentStep, setCurrentStep] = useState<'company' | 'agents' | 'topics'>('company');
+  const [currentStep, setCurrentStep] = useState<'company' | 'agents' | 'topics' | 'start'>('company');
   const [showLLMTest, setShowLLMTest] = useState(false);
   const [companyContext, setCompanyContext] = useState<CompanyContext>({
     name: '',
@@ -249,6 +249,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
         return selectedAgents.length > 0;
       case 'topics':
         return topics.length > 0 && topics.every(topic => topic.title && topic.description);
+      case 'start':
+        return selectedAgents.length > 0 && topics.length > 0 && topics.every(topic => topic.title && topic.description);
       default:
         return false;
     }
@@ -457,6 +459,80 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
           </div>
         );
 
+      case 'start':
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <Play className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-white mb-2">Ready to Start</h2>
+              <p className="text-slate-300">Your boardroom session is configured and ready to begin</p>
+            </div>
+
+            {/* Session Summary */}
+            <div className="bg-slate-700/50 rounded-lg p-6 border border-slate-600">
+              <h3 className="text-lg font-semibold text-white mb-4">Session Summary</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium text-slate-300 mb-2">Company</h4>
+                  <p className="text-white font-medium">{companyContext.name}</p>
+                  <p className="text-sm text-slate-400">{companyContext.industry} • {companyContext.stage}</p>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium text-slate-300 mb-2">Executives ({selectedAgents.length})</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedAgents.map(agent => (
+                      <span key={agent.id} className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded">
+                        {agent.role}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <h4 className="text-sm font-medium text-slate-300 mb-2">Topics ({topics.length})</h4>
+                  <div className="space-y-2">
+                    {topics.map(topic => (
+                      <div key={topic.id} className="flex items-center justify-between bg-slate-600/30 rounded p-2">
+                        <span className="text-white text-sm">{topic.title}</span>
+                        <span className="text-slate-400 text-xs">{topic.estimatedDuration}min</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Start Button */}
+            <div className="text-center">
+              <button
+                onClick={handleStartSession}
+                disabled={isGenerating}
+                className={`
+                  flex items-center gap-3 px-8 py-4 rounded-lg font-medium text-lg transition-all duration-200 mx-auto
+                  ${isGenerating
+                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                    : 'bg-purple-600 text-white hover:bg-purple-700 hover:scale-105'
+                  }
+                `}
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Generating AI Responses...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5" />
+                    Start Boardroom Session
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -465,7 +541,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
   const steps = [
     { id: 'company', label: 'Company', icon: Building2 },
     { id: 'agents', label: 'Executives', icon: Users },
-    { id: 'topics', label: 'Topics', icon: Target }
+    { id: 'topics', label: 'Topics', icon: Target },
+    { id: 'start', label: 'Start', icon: Play }
   ];
 
   return (
@@ -544,7 +621,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
               Previous
             </button>
 
-            {currentStep === 'topics' ? (
+            {currentStep === 'start' ? (
               <button
                 onClick={handleStartSession}
                 disabled={!canProceed() || isGenerating}
