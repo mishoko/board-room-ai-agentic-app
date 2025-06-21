@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Play, CheckCircle, XCircle, Loader, Wifi, WifiOff } from 'lucide-react';
-import { testOllamaConnection, testAgentWithOllama } from '../utils/testLLM';
+import { Play, CheckCircle, XCircle, Loader, Wifi, WifiOff, Info } from 'lucide-react';
+import { testOllamaConnection, testAgentWithOllama, checkOpenWebUIStatus } from '../utils/testLLM';
 
 interface TestResult {
   success: boolean;
@@ -12,9 +12,29 @@ interface TestResult {
 const LLMTestPanel: React.FC = () => {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isTestingAgent, setIsTestingAgent] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [connectionResult, setConnectionResult] = useState<TestResult | null>(null);
   const [agentResult, setAgentResult] = useState<TestResult | null>(null);
+  const [statusResult, setStatusResult] = useState<TestResult | null>(null);
   const [ollamaUrl, setOllamaUrl] = useState(import.meta.env.VITE_OLLAMA_URL || 'http://localhost:3000');
+
+  const handleCheckStatus = async () => {
+    setIsCheckingStatus(true);
+    setStatusResult(null);
+    
+    try {
+      const result = await checkOpenWebUIStatus(ollamaUrl);
+      setStatusResult(result);
+    } catch (error) {
+      setStatusResult({
+        success: false,
+        message: `Status check failed: ${error instanceof Error ? error.message : String(error)}`,
+        error: String(error)
+      });
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
 
   const handleTestConnection = async () => {
     setIsTestingConnection(true);
@@ -73,7 +93,7 @@ const LLMTestPanel: React.FC = () => {
       {result.error && (
         <details className="text-xs opacity-75">
           <summary className="cursor-pointer">Error Details</summary>
-          <pre className="mt-2 p-2 bg-black/10 rounded overflow-x-auto">{result.error}</pre>
+          <pre className="mt-2 p-2 bg-black/10 rounded overflow-x-auto whitespace-pre-wrap">{result.error}</pre>
         </details>
       )}
     </div>
@@ -83,13 +103,13 @@ const LLMTestPanel: React.FC = () => {
     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
       <div className="flex items-center gap-3 mb-6">
         <Wifi className="w-6 h-6 text-blue-400" />
-        <h2 className="text-xl font-semibold text-white">Local LLM Connection Test</h2>
+        <h2 className="text-xl font-semibold text-white">Open WebUI Connection Test</h2>
       </div>
 
       {/* URL Configuration */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-slate-300 mb-2">
-          Ollama URL
+          Open WebUI URL
         </label>
         <input
           type="text"
@@ -99,12 +119,51 @@ const LLMTestPanel: React.FC = () => {
           placeholder="http://localhost:3000"
         />
         <p className="text-xs text-slate-400 mt-1">
-          Current environment: {import.meta.env.VITE_OLLAMA_URL || 'Not set'}
+          Environment: {import.meta.env.VITE_OLLAMA_URL || 'Not set'} | Current: {ollamaUrl}
         </p>
+      </div>
+
+      {/* Info Box */}
+      <div className="mb-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <div className="flex items-start gap-2">
+          <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-300">
+            <p className="font-medium mb-1">Testing Open WebUI at {ollamaUrl}</p>
+            <p className="text-xs opacity-90">
+              This will test multiple API endpoints to find the correct format for your Open WebUI installation.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Test Buttons */}
       <div className="space-y-4">
+        {/* Status Check */}
+        <div>
+          <button
+            onClick={handleCheckStatus}
+            disabled={isCheckingStatus}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
+              ${isCheckingStatus
+                ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }
+            `}
+          >
+            {isCheckingStatus ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <Info className="w-4 h-4" />
+            )}
+            {isCheckingStatus ? 'Checking Status...' : 'Check Open WebUI Status'}
+          </button>
+          
+          {statusResult && (
+            <ResultDisplay result={statusResult} title="Open WebUI Status" />
+          )}
+        </div>
+
         {/* Connection Test */}
         <div>
           <button
@@ -123,11 +182,11 @@ const LLMTestPanel: React.FC = () => {
             ) : (
               <Play className="w-4 h-4" />
             )}
-            {isTestingConnection ? 'Testing Connection...' : 'Test Basic Connection'}
+            {isTestingConnection ? 'Testing API Connection...' : 'Test API Connection'}
           </button>
           
           {connectionResult && (
-            <ResultDisplay result={connectionResult} title="Connection Test Result" />
+            <ResultDisplay result={connectionResult} title="API Connection Test" />
           )}
         </div>
 
@@ -154,12 +213,12 @@ const LLMTestPanel: React.FC = () => {
           
           {!connectionResult?.success && (
             <p className="text-xs text-slate-400 mt-1">
-              Complete connection test first
+              Complete API connection test first
             </p>
           )}
           
           {agentResult && (
-            <ResultDisplay result={agentResult} title="Agent Integration Test Result" />
+            <ResultDisplay result={agentResult} title="Agent Integration Test" />
           )}
         </div>
       </div>
@@ -170,7 +229,7 @@ const LLMTestPanel: React.FC = () => {
           {connectionResult?.success ? (
             <>
               <Wifi className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-green-400">Connected to local LLM</span>
+              <span className="text-sm text-green-400">Connected to Open WebUI</span>
             </>
           ) : (
             <>
@@ -183,13 +242,20 @@ const LLMTestPanel: React.FC = () => {
 
       {/* Instructions */}
       <div className="mt-4 p-3 bg-slate-700/50 rounded-lg">
-        <h4 className="text-sm font-medium text-slate-300 mb-2">Instructions:</h4>
+        <h4 className="text-sm font-medium text-slate-300 mb-2">Testing Steps:</h4>
         <ol className="text-xs text-slate-400 space-y-1">
-          <li>1. Ensure your local LLM is running at the specified URL</li>
-          <li>2. Test the basic connection first</li>
-          <li>3. If successful, test the agent integration</li>
-          <li>4. Check the console for detailed logs</li>
+          <li>1. <strong>Check Status:</strong> Verify Open WebUI is running and accessible</li>
+          <li>2. <strong>Test API:</strong> Test the chat API with multiple endpoint formats</li>
+          <li>3. <strong>Test Integration:</strong> Verify the boardroom agents can use your LLM</li>
+          <li>4. <strong>Check Console:</strong> View detailed logs in browser developer tools</li>
         </ol>
+        
+        <div className="mt-3 pt-2 border-t border-slate-600">
+          <p className="text-xs text-slate-400">
+            <strong>Note:</strong> Open WebUI may use different API endpoints than standard Ollama. 
+            This test will try multiple formats to find the correct one for your setup.
+          </p>
+        </div>
       </div>
     </div>
   );
