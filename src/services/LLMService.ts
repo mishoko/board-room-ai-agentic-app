@@ -365,8 +365,6 @@ Response:`
       const ollamaUrl =
         import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434"
 
-      console.log(`🔗 Calling Ollama at ${ollamaUrl} for agent response...`)
-
       const response = await fetch(`${ollamaUrl}/api/chat`, {
         method: "POST",
         headers: {
@@ -393,9 +391,6 @@ Response:`
       const data = await response.json()
       const content = data.message?.content || "No response generated."
 
-      console.log(
-        `✅ Ollama response received: "${content.substring(0, 100)}..."`
-      )
       return content
     } catch (error) {
       console.error("❌ Error calling Ollama:", error)

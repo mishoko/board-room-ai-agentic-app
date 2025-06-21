@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import BoardMember from "./BoardMember"
 import { Users, User, Pause, Play, MessageSquare, Send } from "lucide-react"
 import { BoardAgentBase } from "../agents/BoardAgentBase"
@@ -21,8 +21,9 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   stateManager,
 }) => {
   const [activeMembers, setActiveMembers] = useState<string[]>([])
-  const [isPaused, setIsPaused] = useState(false)
-  const [isInterrupting, setIsInterrupting] = useState(false)
+  const [isPaused, setIsPaused] = useState(false) // Manual pause button
+  const [isInterrupting, setIsInterrupting] = useState(false) // User is typing a comment
+  const [isWaitingForAgentSync, setIsWaitingForAgentSync] = useState(false) // Waiting for agents to process user input
   const [userMessage, setUserMessage] = useState("")
   const [currentMessages, setCurrentMessages] = useState<{
     [key: string]: string
@@ -39,39 +40,60 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   const [isHoveringBubble, setIsHoveringBubble] = useState(false)
   const [pausedByHover, setPausedByHover] = useState(false)
   const [conversationStarted, setConversationStarted] = useState(false)
+  const [isGeneratingFirstMessage, setIsGeneratingFirstMessage] =
+    useState(false)
 
-  // Calculate dynamic conversation settings based on topic duration
-  const getConversationSettings = (topicDuration: number) => {
+  // Prevent multiple intervals for the same topic
+  const activeIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Calculate dynamic conversation settings based on topic duration and number of agents
+  const getConversationSettings = (
+    topicDuration: number,
+    numAgents: number
+  ) => {
+    // Smart target message calculation: duration * agents * 0.7 (not everyone speaks every time)
+    // Cap at reasonable maximums to prevent endless conversations
+    const baseTargetMessages = Math.floor(topicDuration * numAgents * 0.7)
+    const maxMessages =
+      topicDuration <= 5
+        ? 15
+        : topicDuration <= 10
+        ? 25
+        : topicDuration <= 15
+        ? 35
+        : 50
+    const targetMessages = Math.min(baseTargetMessages, maxMessages)
+
     // Base settings for different duration ranges
     if (topicDuration <= 5) {
       // Very short meetings (1-5 minutes): Quick, focused exchanges
       return {
-        targetMessages: Math.max(4, topicDuration * 1), // 1 message per minute minimum
-        conversationInterval: 4000, // 4 seconds between messages (faster)
+        targetMessages: Math.max(6, targetMessages), // Minimum 6 messages for meaningful discussion
+        conversationInterval: 3000, // 3 seconds between messages (faster)
         messageReadingMultiplier: 1.5, // Faster reading for urgency
         responseComplexity: "concise", // Shorter, more direct responses
       }
     } else if (topicDuration <= 10) {
       // Short meetings (6-10 minutes): Moderate discussion
       return {
-        targetMessages: topicDuration * 1.2, // ~1.2 messages per minute
-        conversationInterval: 3500, // 3.5 seconds between messages
+        targetMessages: Math.max(8, targetMessages), // Minimum 8 messages
+        conversationInterval: 2800, // 2.8 seconds between messages
         messageReadingMultiplier: 1.8,
         responseComplexity: "moderate",
       }
     } else if (topicDuration <= 20) {
       // Medium meetings (11-20 minutes): Rich discussion
       return {
-        targetMessages: topicDuration * 0.8, // ~0.8 messages per minute
-        conversationInterval: 3000, // 3 seconds between messages
+        targetMessages: Math.max(12, targetMessages), // Minimum 12 messages
+        conversationInterval: 2500, // 2.5 seconds between messages
         messageReadingMultiplier: 2.0,
         responseComplexity: "detailed",
       }
     } else {
       // Long meetings (20+ minutes): Deep, thorough analysis
       return {
-        targetMessages: topicDuration * 0.6, // ~0.6 messages per minute
-        conversationInterval: 2500, // 2.5 seconds between messages
+        targetMessages: Math.max(15, targetMessages), // Minimum 15 messages
+        conversationInterval: 2200, // 2.2 seconds between messages
         messageReadingMultiplier: 2.5, // Longer reading time for complex content
         responseComplexity: "comprehensive",
       }
@@ -144,9 +166,9 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       Object.values(activeTimeouts).forEach((timeout) => clearTimeout(timeout))
       console.log("🖱️ Bubble hovered - pausing conversation timers")
     } else {
-      // Resume timeouts when not hovering (unless manually paused)
+      // Resume timeouts when not hovering (unless manually paused, interrupting, or waiting for agent sync)
       setPausedByHover(false)
-      if (!isPaused && !isInterrupting) {
+      if (!isPaused && !isInterrupting && !isWaitingForAgentSync) {
         console.log("🖱️ Bubble unhovered - resuming conversation timers")
         // Restart timers for active messages
         Object.entries(currentMessages).forEach(([agentRole, message]) => {
@@ -351,7 +373,8 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       stateManager &&
       agents.length > 0 &&
       !isPaused &&
-      !isInterrupting
+      !isInterrupting &&
+      !isWaitingForAgentSync
     ) {
       const currentState = stateManager.getTopicState(currentTopic.id)
       if (currentState && currentState.status === "active") {
@@ -361,9 +384,15 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
         )
         setConversationStarted(true)
 
-        // Start first message immediately (no delay)
-        setTimeout(async () => {
-          if (isPaused || isInterrupting || pausedByHover || isHoveringBubble)
+        // Start first message immediately (Task 2: No delay, start instantly)
+        const startConversationImmediately = async () => {
+          if (
+            isPaused ||
+            isInterrupting ||
+            isWaitingForAgentSync ||
+            pausedByHover ||
+            isHoveringBubble
+          )
             return
 
           const availableAgents = agents.filter(
@@ -376,11 +405,19 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             availableAgents[Math.floor(Math.random() * availableAgents.length)]
 
           try {
+            // Show loading indicator while generating first message
+            setIsGeneratingFirstMessage(true)
+            console.log(
+              `🤖 ${randomAgent.getAgent().role} is preparing to speak...`
+            )
+
             const response = await randomAgent.generateResponse("", {
               recentMessages: [],
               topic: currentTopic,
               userInput: undefined,
             })
+
+            setIsGeneratingFirstMessage(false)
 
             const duration = calculateMessageDuration(
               response,
@@ -389,7 +426,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             const agentRole = randomAgent.getAgent().role
 
             console.log(
-              `🎯 ${agentRole} opening conversation: "${response.substring(
+              `🚀 ${agentRole} opening conversation instantly: "${response.substring(
                 0,
                 60
               )}..."`
@@ -400,7 +437,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             setMessageDurations({ [agentRole]: duration })
 
             const message: Message = {
-              id: `msg-${Date.now()}`,
+              id: `msg-${Date.now()}-${agentRole}`, // Add agent role to prevent duplicates
               agentId: randomAgent.getAgent().id,
               text: response,
               timestamp: new Date(),
@@ -438,8 +475,12 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             setActiveTimeouts({ [agentRole]: timeoutId })
           } catch (error) {
             console.error("Error generating opening response:", error)
+            setIsGeneratingFirstMessage(false)
           }
-        }, 100) // Minimal 100ms delay just to ensure everything is initialized
+        }
+
+        // Start immediately without any delay
+        startConversationImmediately()
       }
     }
   }, [
@@ -453,29 +494,43 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
 
   // Enhanced conversation system with dynamic frequency based on topic duration
   useEffect(() => {
-    // Don't start new conversations if paused, interrupting, hovering, or no agents
+    // Clear any existing interval first to prevent cascading
+    if (activeIntervalRef.current) {
+      clearInterval(activeIntervalRef.current)
+      activeIntervalRef.current = null
+    }
+
+    // Don't start new conversations if paused, interrupting, hovering, waiting for agent sync, or no agents
     if (
       isPaused ||
       isInterrupting ||
+      isWaitingForAgentSync ||
       pausedByHover ||
       isHoveringBubble ||
       agents.length === 0 ||
       !currentTopic ||
       !stateManager ||
       !conversationStarted
-    )
+    ) {
       return
+    }
 
     const currentState = stateManager.getTopicState(currentTopic.id)
-    if (!currentState || currentState.status === "completed") return
+    if (!currentState || currentState.status === "completed") {
+      return
+    }
 
-    // Get dynamic conversation settings based on topic duration
+    // Get dynamic conversation settings based on topic duration and number of agents
+    const activeAgentCount = agents.filter(
+      (agent) => agent.getAgent().isActive
+    ).length
     const conversationSettings = getConversationSettings(
-      currentTopic.estimatedDuration
+      currentTopic.estimatedDuration,
+      activeAgentCount
     )
 
     console.log(
-      `🎯 Topic "${currentTopic.title}" (${currentTopic.estimatedDuration}min) - Settings:`,
+      `🎯 Topic "${currentTopic.title}" (${currentTopic.estimatedDuration}min, ${activeAgentCount} agents) - Settings:`,
       {
         targetMessages: conversationSettings.targetMessages,
         interval: conversationSettings.conversationInterval,
@@ -492,15 +547,15 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       ? Math.min(1500, conversationSettings.conversationInterval / 2)
       : conversationSettings.conversationInterval
 
-    console.log(
-      `⏱️ Using ${
-        hasRecentUserInput ? "FAST" : "NORMAL"
-      } interval: ${dynamicInterval}ms`
-    )
-
     const interval = setInterval(async () => {
-      // Check if we should still proceed (not paused by hover or manual pause)
-      if (isPaused || isInterrupting || pausedByHover || isHoveringBubble)
+      // Check if we should still proceed (not paused by hover, manual pause, or waiting for agent sync)
+      if (
+        isPaused ||
+        isInterrupting ||
+        isWaitingForAgentSync ||
+        pausedByHover ||
+        isHoveringBubble
+      )
         return
 
       const latestState = stateManager.getTopicState(currentTopic.id)
@@ -509,11 +564,25 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
         return
       }
 
-      // Check if we've reached the target message count for this duration
+      // Check if we've reached the target message count for this duration (Task 2 & 3: Prevent freezing and smart completion)
       if (latestState.messageCount >= conversationSettings.targetMessages) {
         console.log(
-          `📊 Reached target message count (${conversationSettings.targetMessages}) for ${currentTopic.estimatedDuration}min topic`
+          `📊 Conversation completed! Reached target message count (${conversationSettings.targetMessages}) for ${currentTopic.estimatedDuration}min topic with ${activeAgentCount} agents`
         )
+
+        // Mark topic as completed to prevent further messages (Task 2: Fix freezing)
+        stateManager.updateTopicStatus(currentTopic.id, "completed")
+        setActiveMembers([])
+        setCurrentMessages({})
+        setMessageDurations({})
+
+        // Clear any active timeouts
+        Object.values(activeTimeouts).forEach((timeout) =>
+          clearTimeout(timeout)
+        )
+        setActiveTimeouts({})
+
+        console.log(`✅ Topic "${currentTopic.title}" marked as completed`)
         return
       }
 
@@ -552,6 +621,16 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
 
       if (shouldRespond) {
         try {
+          // Prevent duplicate messages by checking if agent is already speaking
+          if (activeMembers.includes(randomAgent.getAgent().role)) {
+            console.log(
+              `⚠️ ${
+                randomAgent.getAgent().role
+              } is already speaking, skipping...`
+            )
+            return
+          }
+
           // Always check for recent user messages (more robust than relying on isInterrupted flag)
           const userMessages = allMessages.filter(
             (msg) => msg.agentId === "user"
@@ -566,20 +645,26 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             .slice(-5)
             .find((msg) => msg.agentId === "user")?.text
 
-          console.log(
-            `🎯 Agent ${randomAgent.getAgent().role} - User messages found: ${
-              userMessages.length
-            }, Latest: "${latestUserMessage?.substring(
-              0,
-              50
-            )}...", Recent input: ${recentUserInput ? "YES" : "NO"}`
-          )
-
           const response = await randomAgent.generateResponse("", {
             recentMessages: allMessages,
             topic: currentTopic,
             userInput: recentUserInput || latestUserMessage,
           })
+
+          // Check for duplicate responses to prevent same message appearing multiple times
+          const lastMessage = allMessages[allMessages.length - 1]
+          if (
+            lastMessage &&
+            lastMessage.text === response &&
+            lastMessage.agentId === randomAgent.getAgent().id
+          ) {
+            console.log(
+              `⚠️ Duplicate response detected for ${
+                randomAgent.getAgent().role
+              }, skipping...`
+            )
+            return
+          }
 
           // Calculate duration with topic-aware timing
           const duration = calculateMessageDuration(
@@ -613,7 +698,9 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
           }))
 
           const message: Message = {
-            id: `msg-${Date.now()}`,
+            id: `msg-${Date.now()}-${agentRole}-${Math.random()
+              .toString(36)
+              .substr(2, 9)}`, // Unique ID to prevent duplicates
             agentId: randomAgent.getAgent().id,
             text: response,
             timestamp: new Date(),
@@ -625,10 +712,11 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
           setTopicState(updatedState)
           randomAgent.addToHistory(message)
 
-          // Set timeout to clear the message with proper duration (only if not paused/hovering)
+          // Set timeout to clear the message with proper duration (only if not paused/hovering/waiting for agent sync)
           if (
             !isPaused &&
             !isInterrupting &&
+            !isWaitingForAgentSync &&
             !pausedByHover &&
             !isHoveringBubble
           ) {
@@ -670,17 +758,22 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       }
     }, dynamicInterval) // Use dynamic interval based on user input
 
-    return () => clearInterval(interval)
+    // Store the interval reference to prevent cascading
+    activeIntervalRef.current = interval
+
+    return () => {
+      clearInterval(interval)
+      if (activeIntervalRef.current === interval) {
+        activeIntervalRef.current = null
+      }
+    }
   }, [
     isPaused,
     isInterrupting,
+    isWaitingForAgentSync,
     pausedByHover,
     isHoveringBubble,
-    agents,
-    currentTopic,
-    stateManager,
-    isInterrupted,
-    activeTimeouts,
+    currentTopic?.id, // Only depend on topic ID, not the entire object
     conversationStarted,
   ])
 
@@ -694,8 +787,8 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       setActiveTimeouts({})
       console.log("⏸️ Conversation paused - messages will remain visible")
     } else {
-      // When resuming, restart timers for active messages (if not hovering)
-      if (!isHoveringBubble && !pausedByHover) {
+      // When resuming, restart timers for active messages (if not hovering or waiting for agent sync)
+      if (!isHoveringBubble && !pausedByHover && !isWaitingForAgentSync) {
         console.log("▶️ Conversation resumed - restarting message timers")
         Object.entries(currentMessages).forEach(([agentRole, message]) => {
           if (message && activeMembers.includes(agentRole)) {
@@ -736,12 +829,18 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   }
 
   const handleInterrupt = () => {
+    console.log(
+      "🛑 User clicked comment button - immediately pausing conversation"
+    )
     setIsInterrupting(true)
     setIsPaused(true)
     setActiveMembers([])
     // Clear all active timeouts when interrupting
     Object.values(activeTimeouts).forEach((timeout) => clearTimeout(timeout))
     setActiveTimeouts({})
+    // Clear current messages to immediately stop any ongoing speech
+    setCurrentMessages({})
+    setMessageDurations({})
   }
 
   const handleSendMessage = () => {
@@ -751,11 +850,14 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
       // Immediately update UI to be non-blocking
       setUserMessage("")
       setIsInterrupting(false)
-      setIsPaused(false)
+      // Don't resume conversation immediately - wait for processing to complete
 
       // Process the message asynchronously without blocking UI
       const processUserMessage = async () => {
         try {
+          console.log("🔄 Processing user message and synchronizing agents...")
+          setIsWaitingForAgentSync(true)
+
           const userMsg: Message = {
             id: `msg-user-${Date.now()}`,
             agentId: "user",
@@ -799,8 +901,51 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             "✅ User interrupted conversation. Agents will now respond contextually to:",
             userMessageText
           )
+
+          // Verify all agents have received the user message before resuming
+          const verifyAgentSynchronization = () => {
+            const allAgentsHaveUserMessage = agents.every((agent) => {
+              const agentHistory = agent.getConversationHistory()
+              return agentHistory.some((msg) => msg.id === userMsg.id)
+            })
+
+            if (allAgentsHaveUserMessage) {
+              console.log(
+                "🔄 All agents synchronized with user input. Resuming conversation..."
+              )
+              setIsWaitingForAgentSync(false)
+              setIsPaused(false)
+              return true
+            }
+            return false
+          }
+
+          // Try immediate verification first
+          if (!verifyAgentSynchronization()) {
+            // If not all agents are synchronized, wait and retry
+            console.log("⏳ Waiting for agent synchronization...")
+            let attempts = 0
+            const maxAttempts = 10
+
+            const syncInterval = setInterval(() => {
+              attempts++
+              if (verifyAgentSynchronization() || attempts >= maxAttempts) {
+                clearInterval(syncInterval)
+                if (attempts >= maxAttempts) {
+                  console.warn(
+                    "⚠️ Agent synchronization timeout, resuming anyway..."
+                  )
+                  setIsWaitingForAgentSync(false)
+                  setIsPaused(false)
+                }
+              }
+            }, 100) // Check every 100ms
+          }
         } catch (error) {
           console.error("❌ Error processing user message:", error)
+          // Resume conversation even if there's an error
+          setIsWaitingForAgentSync(false)
+          setIsPaused(false)
         }
       }
 
@@ -827,13 +972,21 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
   return (
     <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-3xl p-8 backdrop-blur-sm border border-slate-700/50 shadow-2xl">
       {/* Enhanced Status Indicators */}
-      {(isPaused || isInterrupting || isHoveringBubble) && (
+      {(isPaused ||
+        isInterrupting ||
+        isWaitingForAgentSync ||
+        isHoveringBubble ||
+        isGeneratingFirstMessage) && (
         <div className="absolute top-4 right-4 z-20">
           <div
             className={`
-            px-3 py-1 rounded-full text-xs font-medium
+            px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2
             ${
-              isHoveringBubble
+              isGeneratingFirstMessage
+                ? "bg-blue-500/30 text-blue-200"
+                : isWaitingForAgentSync
+                ? "bg-orange-500/30 text-orange-200"
+                : isHoveringBubble
                 ? "bg-purple-500/30 text-purple-200"
                 : isPaused && !isInterrupting
                 ? "bg-amber-500/30 text-amber-200"
@@ -841,11 +994,23 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
             }
           `}
           >
-            {isHoveringBubble
-              ? "Hover off to continue with the conversation"
-              : isInterrupting
-              ? "Waiting for your input..."
-              : "Conversation paused - messages visible"}
+            {isGeneratingFirstMessage ? (
+              <>
+                <div className="w-3 h-3 border border-blue-300 border-t-transparent rounded-full animate-spin"></div>
+                Meeting is starting...
+              </>
+            ) : isWaitingForAgentSync ? (
+              <>
+                <div className="w-3 h-3 border border-orange-300 border-t-transparent rounded-full animate-spin"></div>
+                Synchronizing agents with your input...
+              </>
+            ) : isHoveringBubble ? (
+              "Hover off to continue with the conversation"
+            ) : isInterrupting ? (
+              "Waiting for your input..."
+            ) : (
+              "Conversation paused - messages visible"
+            )}
           </div>
         </div>
       )}
@@ -875,7 +1040,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
               Topic: {currentTopic.title}{" "}
               {isTopicCompleted ? "(Completed)" : ""}
             </div>
-            {!isTopicCompleted && (
+            {/* {!isTopicCompleted && (
               <div className="bg-slate-800/50 rounded-full px-3 py-1">
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-1 bg-slate-600 rounded-full overflow-hidden">
@@ -891,7 +1056,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
                   </span>
                 </div>
               </div>
-            )}
+            )} */}
             {isTopicCompleted && (
               <div className="bg-green-500/20 rounded-full px-3 py-1">
                 <span className="text-xs text-green-300">
@@ -928,8 +1093,8 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
           />
         ))}
 
-        {/* Enhanced Control Panel */}
-        <div className="absolute bottom-4 right-4 flex items-center gap-2 z-20">
+        {/* Enhanced Control Panel - Task 3: Moved closer to border */}
+        <div className="absolute bottom-1 right-1 flex items-center gap-2 z-20">
           <button
             onClick={handlePauseToggle}
             disabled={isInterrupting || isTopicCompleted}
@@ -986,7 +1151,7 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
 
       {/* User Input Modal */}
       {isInterrupting && (
-        <div className="absolute inset-0 bg-black/50 rounded-3xl flex items-center justify-center z-30">
+        <div className="absolute inset-0 bg-black/50 rounded-3xl flex items-center justify-center z-[10000]">
           <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 border border-slate-600 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <MessageSquare className="w-5 h-5 text-blue-400" />

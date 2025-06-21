@@ -141,7 +141,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
     },
     {
       role: "CVCO",
-      name: "Chief Vice Coding Officer",
+      name: "Chief Coding Officer",
       persona:
         "Engineering excellence advocate ensuring code quality and developer productivity",
       experience:
@@ -613,8 +613,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                   key={topic.id}
                   className="bg-slate-700/50 rounded-lg p-4 border border-slate-600"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-slate-300 mb-2">
                         Topic Title
                       </label>
@@ -629,8 +629,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                       />
                     </div>
 
-                    <div className="flex gap-2">
-                      <div className="flex-1">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">
                           Priority
                         </label>
@@ -651,7 +651,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                         </select>
                       </div>
 
-                      <div className="flex-1">
+                      <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">
                           Duration (min)
                         </label>
@@ -930,28 +930,60 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
               Previous
             </button>
 
-            <button
-              onClick={() => {
-                const currentIndex = steps.findIndex(
-                  (s) => s.id === currentStep
-                )
-                if (currentIndex < steps.length - 1) {
-                  setCurrentStep(steps[currentIndex + 1].id as any)
-                }
-              }}
-              disabled={!canProceed()}
-              className={`
-                flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200
-                ${
-                  canProceed()
-                    ? "bg-purple-600 text-white hover:bg-purple-700"
-                    : "bg-slate-600 text-slate-400 cursor-not-allowed"
-                }
-              `}
-            >
-              Next
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {currentStep === "start" ? (
+              // <button
+              //   onClick={handleStartSession}
+              //   disabled={!canProceed() || isGenerating}
+              //   className={`
+              //     flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200
+              //     ${
+              //       canProceed() && !isGenerating
+              //         ? "bg-purple-600 text-white hover:bg-purple-700"
+              //         : "bg-slate-600 text-slate-400 cursor-not-allowed"
+              //     }
+              //   `}
+              // >
+              //   {isGenerating ? (
+              //     <>
+              //       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              //       Starting Session...
+              //     </>
+              //   ) : (
+              //     <>
+              //       Start Boardroom Session
+              //       <ArrowRight className="w-4 h-4" />
+              //     </>
+              //   )}
+              // </button>
+              <> </>
+            ) : (
+              <>
+                {currentStep !== "topics" && (
+                  <button
+                    onClick={() => {
+                      const currentIndex = steps.findIndex(
+                        (s) => s.id === currentStep
+                      )
+                      if (currentIndex < steps.length - 1) {
+                        setCurrentStep(steps[currentIndex + 1].id as any)
+                      }
+                    }}
+                    disabled={!canProceed()}
+                    className={`
+                    flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200
+                    ${
+                      canProceed()
+                        ? "bg-purple-600 text-white hover:bg-purple-700"
+                        : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                    }
+                  `}
+                  >
+                    Next
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
