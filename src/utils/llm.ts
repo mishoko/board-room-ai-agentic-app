@@ -20,13 +20,16 @@ export async function callLLM<T>({
   defaultFactory,
   provider = 'openai'
 }: LLMOptions<T>): Promise<T> {
-  const apiKey = process.env.LLM_API_KEY;
+  const apiKey = import.meta.env.VITE_LLM_API_KEY;
   
   try {
     if (provider === 'openai') {
-      if (!apiKey) throw new Error('OpenAI requires LLM_API_KEY');
+      if (!apiKey) throw new Error('OpenAI requires VITE_LLM_API_KEY');
       
-      const openai = new OpenAI({ apiKey });
+      const openai = new OpenAI({ 
+        apiKey,
+        dangerouslyAllowBrowser: true
+      });
       const response = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: prompt.toMessages(),
@@ -36,7 +39,7 @@ export async function callLLM<T>({
       return Object.assign(new model(), JSON.parse(response.choices[0].message.content));
     } 
     else if (provider === 'ollama') {
-      const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+      const ollamaUrl = import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434';
       const response = await axios.post(`${ollamaUrl}/api/chat`, {
         model: 'llama3',
         messages: prompt.toMessages(),
