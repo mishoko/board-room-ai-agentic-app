@@ -1,22 +1,39 @@
 import React, { useState } from 'react';
-import { Play, CheckCircle, XCircle, Loader, Wifi, WifiOff, Info } from 'lucide-react';
-import { testOllamaConnection, testAgentWithOllama, checkOpenWebUIStatus } from '../utils/testLLM';
+import { Play, CheckCircle, XCircle, Loader, Wifi, WifiOff, Info, Settings } from 'lucide-react';
+import { testOllamaConnection, testAgentWithOllama, checkOpenWebUIStatus, getAvailableModels } from '../utils/testLLM';
 
 interface TestResult {
   success: boolean;
   message: string;
   responseTime?: number;
   error?: string;
+  detectedModel?: string;
+  detectedEndpoint?: string;
 }
 
 const LLMTestPanel: React.FC = () => {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isTestingAgent, setIsTestingAgent] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [connectionResult, setConnectionResult] = useState<TestResult | null>(null);
   const [agentResult, setAgentResult] = useState<TestResult | null>(null);
   const [statusResult, setStatusResult] = useState<TestResult | null>(null);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [ollamaUrl, setOllamaUrl] = useState(import.meta.env.VITE_OLLAMA_URL || 'http://localhost:3000');
+
+  const handleLoadModels = async () => {
+    setIsLoadingModels(true);
+    try {
+      const models = await getAvailableModels(ollamaUrl);
+      setAvailableModels(models);
+    } catch (error) {
+      console.error('Failed to load models:', error);
+      setAvailableModels([]);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
 
   const handleCheckStatus = async () => {
     setIsCheckingStatus(true);
@@ -25,6 +42,11 @@ const LLMTestPanel: React.FC = () => {
     try {
       const result = await checkOpenWebUIStatus(ollamaUrl);
       setStatusResult(result);
+      
+      // Also load models if status check succeeds
+      if (result.success) {
+        await handleLoadModels();
+      }
     } catch (error) {
       setStatusResult({
         success: false,
@@ -89,7 +111,15 @@ const LLMTestPanel: React.FC = () => {
           <span className="text-sm opacity-75">({result.responseTime}ms)</span>
         )}
       </div>
-      <p className="text-sm mb-2">{result.message}</p>
+      <p className="text-sm mb-2 whitespace-pre-line">{result.message}</p>
+      
+      {/* Show detected configuration */}
+      {result.detectedModel && result.detectedEndpoint && (
+        <div className="text-xs opacity-75 mb-2">
+          <strong>Detected:</strong> Model: {result.detectedModel}, Endpoint: {result.detectedEndpoint}
+        </div>
+      )}
+      
       {result.error && (
         <details className="text-xs opacity-75">
           <summary className="cursor-pointer">Error Details</summary>
@@ -111,16 +141,38 @@ const LLMTestPanel: React.FC = () => {
         <label className="block text-sm font-medium text-slate-300 mb-2">
           Open WebUI URL
         </label>
-        <input
-          type="text"
-          value={ollamaUrl}
-          onChange={(e) => setOllamaUrl(e.target.value)}
-          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          placeholder="http://localhost:3000"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={ollamaUrl}
+            onChange={(e) => setOllamaUrl(e.target.value)}
+            className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            placeholder="http://localhost:3000"
+          />
+          <button
+            onClick={handleLoadModels}
+            disabled={isLoadingModels}
+            className="px-3 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-500 disabled:opacity-50"
+            title="Load available models"
+          >
+            {isLoadingModels ? (
+              <Loader className="w-4 h-4 animate-spin" />
+            ) : (
+              <Settings className="w-4 h-4" />
+            )}
+          </button>
+        </div>
         <p className="text-xs text-slate-400 mt-1">
           Environment: {import.meta.env.VITE_OLLAMA_URL || 'Not set'} | Current: {ollamaUrl}
         </p>
+        
+        {/* Available Models Display */}
+        {availableModels.length > 0 && (
+          <div className="mt-2 p-2 bg-slate-700/50 rounded text-xs">
+            <span className="text-slate-300">Available models: </span>
+            <span className="text-blue-300">{availableModels.join(', ')}</span>
+          </div>
+        )}
       </div>
 
       {/* Info Box */}
@@ -128,9 +180,9 @@ const LLMTestPanel: React.FC = () => {
         <div className="flex items-start gap-2">
           <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
           <div className="text-sm text-blue-300">
-            <p className="font-medium mb-1">Testing Open WebUI at {ollamaUrl}</p>
+            <p className="font-medium mb-1">Testing Open WebUI/Ollama at {ollamaUrl}</p>
             <p className="text-xs opacity-90">
-              This will test multiple API endpoints to find the correct format for your Open WebUI installation.
+              This will automatically detect your model and API format. Works with both Open WebUI and standard Ollama.
             </p>
           </div>
         </div>
@@ -229,7 +281,10 @@ const LLMTestPanel: React.FC = () => {
           {connectionResult?.success ? (
             <>
               <Wifi className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-green-400">Connected to Open WebUI</span>
+              <span className="text-sm text-green-400">
+                Connected to {connectionResult.detectedModel || 'LLM'} 
+                {connectionResult.detectedEndpoint && ` via ${connectionResult.detectedEndpoint}`}
+              </span>
             </>
           ) : (
             <>
@@ -244,16 +299,16 @@ const LLMTestPanel: React.FC = () => {
       <div className="mt-4 p-3 bg-slate-700/50 rounded-lg">
         <h4 className="text-sm font-medium text-slate-300 mb-2">Testing Steps:</h4>
         <ol className="text-xs text-slate-400 space-y-1">
-          <li>1. <strong>Check Status:</strong> Verify Open WebUI is running and accessible</li>
-          <li>2. <strong>Test API:</strong> Test the chat API with multiple endpoint formats</li>
+          <li>1. <strong>Check Status:</strong> Verify Open WebUI is running and detect available models</li>
+          <li>2. <strong>Test API:</strong> Test the chat API with automatic endpoint and model detection</li>
           <li>3. <strong>Test Integration:</strong> Verify the boardroom agents can use your LLM</li>
           <li>4. <strong>Check Console:</strong> View detailed logs in browser developer tools</li>
         </ol>
         
         <div className="mt-3 pt-2 border-t border-slate-600">
           <p className="text-xs text-slate-400">
-            <strong>Note:</strong> Open WebUI may use different API endpoints than standard Ollama. 
-            This test will try multiple formats to find the correct one for your setup.
+            <strong>Supports:</strong> Open WebUI, standard Ollama, and multiple API formats. 
+            The system will automatically detect your configuration and use the best available model.
           </p>
         </div>
       </div>

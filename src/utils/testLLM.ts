@@ -6,74 +6,137 @@ interface TestResult {
   message: string;
   responseTime?: number;
   error?: string;
+  detectedModel?: string;
+  detectedEndpoint?: string;
+}
+
+interface ModelInfo {
+  name: string;
+  size?: number;
+  modified_at?: string;
+}
+
+// Get available models from Open WebUI/Ollama
+export async function getAvailableModels(url: string = 'http://localhost:3000'): Promise<string[]> {
+  const modelEndpoints = [
+    '/api/models',
+    '/api/tags',
+    '/v1/models'
+  ];
+  
+  for (const endpoint of modelEndpoints) {
+    try {
+      console.log(`🔍 Checking models at ${url}${endpoint}`);
+      const response = await axios.get(`${url}${endpoint}`, {
+        timeout: 5000,
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (response.status === 200 && response.data) {
+        let models: string[] = [];
+        
+        // Parse different response formats
+        if (response.data.models && Array.isArray(response.data.models)) {
+          // Ollama format: { models: [{ name: "llama3" }] }
+          models = response.data.models.map((m: ModelInfo) => m.name);
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          // OpenAI format: { data: [{ id: "model-name" }] }
+          models = response.data.data.map((m: any) => m.id || m.name);
+        } else if (Array.isArray(response.data)) {
+          // Direct array format
+          models = response.data.map((m: any) => typeof m === 'string' ? m : m.name || m.id);
+        }
+        
+        if (models.length > 0) {
+          console.log(`✅ Found models via ${endpoint}:`, models);
+          return models;
+        }
+      }
+    } catch (error) {
+      console.log(`❌ Model endpoint ${endpoint} failed:`, error.message);
+      continue;
+    }
+  }
+  
+  // Fallback to common model names
+  console.log('⚠️ No models detected, using fallback list');
+  return ['llama3', 'llama2', 'mistral', 'codellama', 'gpt-3.5-turbo'];
 }
 
 export async function testOllamaConnection(url: string = 'http://localhost:3000'): Promise<TestResult> {
   const startTime = Date.now();
   
   try {
-    console.log(`🔍 Testing Open WebUI connection at ${url}...`);
+    console.log(`🔍 Testing Open WebUI/Ollama connection at ${url}...`);
     
-    // First, try to check if the service is running by testing the root endpoint
-    try {
-      const healthCheck = await axios.get(`${url}/`, {
-        timeout: 5000,
-        headers: {
-          'Accept': 'text/html,application/json'
-        }
-      });
-      console.log('✅ Open WebUI service is responding:', healthCheck.status);
-    } catch (healthError) {
-      console.log('⚠️ Health check failed, trying API directly...');
-    }
+    // First, get available models
+    const availableModels = await getAvailableModels(url);
+    const testModel = availableModels[0]; // Use the first available model
+    
+    console.log(`🤖 Using model: ${testModel} from available models:`, availableModels);
     
     // Test the API endpoint - Open WebUI typically uses /api/chat or /v1/chat/completions
     const testEndpoints = [
       '/api/chat',
       '/v1/chat/completions',
-      '/api/v1/chat/completions'
+      '/api/v1/chat/completions',
+      '/api/generate'
     ];
     
     let lastError: any = null;
     
     for (const endpoint of testEndpoints) {
       try {
-        console.log(`🔍 Trying endpoint: ${url}${endpoint}`);
+        console.log(`🔍 Trying endpoint: ${url}${endpoint} with model: ${testModel}`);
         
-        const requestData = endpoint.includes('v1/chat/completions') ? {
+        let requestData: any;
+        
+        if (endpoint.includes('v1/chat/completions')) {
           // OpenAI-compatible format
-          model: 'llama3',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a helpful assistant. Respond with valid JSON only.'
-            },
-            {
-              role: 'user',
-              content: 'Please respond with a simple JSON object containing a "test" field with value "success" and a "message" field with a brief greeting.'
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 100
-        } : {
-          // Ollama format
-          model: 'llama3',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a helpful assistant. Respond with valid JSON only.'
-            },
-            {
-              role: 'user',
-              content: 'Please respond with a simple JSON object containing a "test" field with value "success" and a "message" field with a brief greeting.'
-            }
-          ],
-          format: 'json',
-          stream: false
-        };
+          requestData = {
+            model: testModel,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a helpful assistant. Respond with valid JSON only.'
+              },
+              {
+                role: 'user',
+                content: 'Please respond with a simple JSON object containing a "test" field with value "success" and a "message" field with a brief greeting.'
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 100
+          };
+        } else if (endpoint.includes('generate')) {
+          // Ollama generate format
+          requestData = {
+            model: testModel,
+            prompt: 'Please respond with a simple JSON object containing a "test" field with value "success" and a "message" field with a brief greeting.',
+            format: 'json',
+            stream: false
+          };
+        } else {
+          // Ollama chat format
+          requestData = {
+            model: testModel,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a helpful assistant. Respond with valid JSON only.'
+              },
+              {
+                role: 'user',
+                content: 'Please respond with a simple JSON object containing a "test" field with value "success" and a "message" field with a brief greeting.'
+              }
+            ],
+            format: 'json',
+            stream: false
+          };
+        }
         
         const response = await axios.post(`${url}${endpoint}`, requestData, {
-          timeout: 15000, // 15 second timeout for LLM response
+          timeout: 30000, // 30 second timeout for LLM response
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
@@ -92,33 +155,40 @@ export async function testOllamaConnection(url: string = 'http://localhost:3000'
           try {
             if (endpoint.includes('v1/chat/completions')) {
               // OpenAI format response
-              responseText = response.data.choices?.[0]?.message?.content || JSON.stringify(response.data);
+              responseText = response.data.choices?.[0]?.message?.content || '';
+            } else if (endpoint.includes('generate')) {
+              // Ollama generate format
+              responseText = response.data.response || '';
             } else {
-              // Ollama format response
-              responseText = response.data.message?.content || response.data.response || JSON.stringify(response.data);
+              // Ollama chat format
+              responseText = response.data.message?.content || '';
             }
             
             // Try to parse as JSON
-            if (typeof responseText === 'string') {
+            if (typeof responseText === 'string' && responseText.trim()) {
               try {
                 parsedResponse = JSON.parse(responseText);
               } catch {
                 parsedResponse = { message: responseText };
               }
             } else {
-              parsedResponse = responseText;
+              parsedResponse = response.data;
             }
             
             return {
               success: true,
-              message: `Connected successfully to ${endpoint}! Response time: ${responseTime}ms. Model response: ${JSON.stringify(parsedResponse)}`,
-              responseTime
+              message: `Connected successfully to ${endpoint}! Response time: ${responseTime}ms. Model: ${testModel}`,
+              responseTime,
+              detectedModel: testModel,
+              detectedEndpoint: endpoint
             };
           } catch (parseError) {
             return {
               success: true,
-              message: `Connected to ${endpoint} but response parsing failed. Raw response: ${JSON.stringify(response.data)}`,
-              responseTime
+              message: `Connected to ${endpoint} but response parsing failed. Raw response received.`,
+              responseTime,
+              detectedModel: testModel,
+              detectedEndpoint: endpoint
             };
           }
         }
@@ -251,37 +321,51 @@ export async function checkOpenWebUIStatus(url: string = 'http://localhost:3000'
     
     // Check common Open WebUI endpoints
     const statusEndpoints = [
-      '/api/models',
-      '/api/version',
-      '/health',
-      '/'
+      { path: '/api/models', description: 'Available models' },
+      { path: '/api/version', description: 'Version info' },
+      { path: '/health', description: 'Health check' },
+      { path: '/', description: 'Main interface' }
     ];
+    
+    const results: string[] = [];
     
     for (const endpoint of statusEndpoints) {
       try {
-        const response = await axios.get(`${url}${endpoint}`, {
+        const response = await axios.get(`${url}${endpoint.path}`, {
           timeout: 5000,
           headers: {
-            'Accept': 'application/json'
+            'Accept': 'application/json,text/html'
           }
         });
         
         if (response.status === 200) {
-          return {
-            success: true,
-            message: `Open WebUI is running! Endpoint ${endpoint} responded with: ${JSON.stringify(response.data).substring(0, 200)}...`
-          };
+          const dataPreview = typeof response.data === 'string' 
+            ? response.data.substring(0, 100) 
+            : JSON.stringify(response.data).substring(0, 100);
+          
+          results.push(`✅ ${endpoint.description} (${endpoint.path}): ${dataPreview}...`);
         }
       } catch (error) {
-        console.log(`Endpoint ${endpoint} failed:`, error.message);
-        continue;
+        results.push(`❌ ${endpoint.description} (${endpoint.path}): ${error.message}`);
       }
     }
     
+    // Try to get model information
+    try {
+      const models = await getAvailableModels(url);
+      results.push(`🤖 Available models: ${models.join(', ')}`);
+    } catch (error) {
+      results.push(`❌ Model detection failed: ${error.message}`);
+    }
+    
+    const hasSuccess = results.some(r => r.startsWith('✅'));
+    
     return {
-      success: false,
-      message: 'Open WebUI status check failed - no endpoints responded',
-      error: 'All status endpoints failed to respond'
+      success: hasSuccess,
+      message: hasSuccess 
+        ? `Open WebUI is running! Status check results:\n${results.join('\n')}` 
+        : `Open WebUI status check failed:\n${results.join('\n')}`,
+      error: hasSuccess ? undefined : 'No endpoints responded successfully'
     };
     
   } catch (error) {
