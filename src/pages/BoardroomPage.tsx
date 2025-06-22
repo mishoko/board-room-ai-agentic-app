@@ -345,10 +345,10 @@ const BoardroomPage: React.FC<BoardroomPageProps> = ({
           </div>
 
           <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-lg">
-            <Briefcase className="w-4 h-4 text-slate-400" />
-            <span className="text-slate-300 text-sm">
+            {/* <Briefcase className="w-4 h-4 text-slate-400" /> */}
+            {/* <span className="text-slate-300 text-sm">
               {session.companyContext.stage}
-            </span>
+            </span> */}
           </div>
         </div>
 

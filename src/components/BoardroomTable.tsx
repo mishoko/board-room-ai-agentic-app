@@ -1032,7 +1032,10 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
               className={`px-3 py-1 rounded-full text-xs font-medium ${
                 isTopicCompleted
                   ? "bg-green-500/30 text-green-200"
-                  : topicState.status === "active"
+                  : topicState.status === "active" ||
+                    isGeneratingFirstMessage ||
+                    isWaitingForAgentSync ||
+                    topicState.status === "pending"
                   ? "bg-purple-500/30 text-purple-200"
                   : "bg-slate-500/30 text-slate-300"
               }`}

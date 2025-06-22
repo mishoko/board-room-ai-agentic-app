@@ -125,20 +125,34 @@ export async function callLLM<T>({
   agentName,
   state,
   defaultFactory,
-  provider = "ollama",
+  provider,
 }: LLMOptions<T>): Promise<T> {
+  // Use environment provider if not explicitly specified
+  const actualProvider =
+    provider || import.meta.env.VITE_LLM_PROVIDER || "ollama"
   const apiKey = import.meta.env.VITE_LLM_API_KEY
 
   try {
-    if (provider === "openai") {
+    if (actualProvider === "openai") {
       if (!apiKey) throw new Error("OpenAI requires VITE_LLM_API_KEY")
+
+      // Check if this is an OpenRouter API key and configure accordingly
+      const isOpenRouter = apiKey.startsWith("sk-or-v1-")
+      const baseURL = isOpenRouter ? "https://openrouter.ai/api/v1" : undefined
 
       const openai = new OpenAI({
         apiKey,
+        baseURL,
         dangerouslyAllowBrowser: true,
       })
+
+      // Use a model that's available on OpenRouter if using OpenRouter
+      const model = isOpenRouter
+        ? import.meta.env.VITE_DEFAULT_AI_MODEL || "openai/gpt-3.5-turbo"
+        : "gpt-3.5-turbo"
+
       const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model,
         messages: prompt.toMessages(),
         response_format: { type: "json_object" },
       })
@@ -147,7 +161,7 @@ export async function callLLM<T>({
         new model(),
         JSON.parse(response.choices[0].message.content)
       )
-    } else if (provider === "ollama") {
+    } else if (actualProvider === "ollama") {
       const ollamaUrl =
         import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434"
 

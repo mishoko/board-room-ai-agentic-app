@@ -100,38 +100,90 @@ Comment:`
 
   private async callLocalLLM(prompt: string): Promise<string> {
     try {
-      const ollamaUrl =
-        import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434"
+      const provider = import.meta.env.VITE_LLM_PROVIDER || "ollama"
 
-      const response = await fetch(`${ollamaUrl}/api/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama3.2:latest",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are an AI executive assistant providing brief, strategic comments.",
-            },
-            { role: "user", content: prompt },
-          ],
-          stream: false,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      if (provider === "openai") {
+        return await this.callOpenAI(prompt)
+      } else {
+        return await this.callOllama(prompt)
       }
-
-      const data = await response.json()
-      return data.message?.content || "No comment generated."
     } catch (error) {
-      console.error("Error calling local LLM:", error)
+      console.error("Error calling LLM:", error)
       throw error
     }
+  }
+
+  private async callOpenAI(prompt: string): Promise<string> {
+    const apiKey = import.meta.env.VITE_LLM_API_KEY
+    if (!apiKey) throw new Error("OpenAI requires VITE_LLM_API_KEY")
+
+    // Check if this is an OpenRouter API key and configure accordingly
+    const isOpenRouter = apiKey.startsWith("sk-or-v1-")
+    const baseURL = isOpenRouter
+      ? "https://openrouter.ai/api/v1"
+      : "https://api.openai.com/v1"
+
+    const model = isOpenRouter
+      ? import.meta.env.VITE_DEFAULT_AI_MODEL || "openai/gpt-3.5-turbo"
+      : "gpt-3.5-turbo"
+
+    const response = await fetch(`${baseURL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an AI executive assistant providing brief, strategic comments.",
+          },
+          { role: "user", content: prompt },
+        ],
+        stream: false,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.choices?.[0]?.message?.content || "No comment generated."
+  }
+
+  private async callOllama(prompt: string): Promise<string> {
+    const ollamaUrl =
+      import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434"
+
+    const response = await fetch(`${ollamaUrl}/api/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama3.2:latest",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an AI executive assistant providing brief, strategic comments.",
+          },
+          { role: "user", content: prompt },
+        ],
+        stream: false,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.message?.content || "No comment generated."
   }
 
   private generateFallbackComment(
@@ -361,39 +413,15 @@ Response:`
 
   private async callBoltAI(prompt: string): Promise<string> {
     try {
-      // Use Ollama instead of simulated response
-      const ollamaUrl =
-        import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434"
+      const provider = import.meta.env.VITE_LLM_PROVIDER || "ollama"
 
-      const response = await fetch(`${ollamaUrl}/api/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama3.2:latest",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are an AI executive assistant providing strategic insights.",
-            },
-            { role: "user", content: prompt },
-          ],
-          stream: false,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      if (provider === "openai") {
+        return await this.callOpenAIForBolt(prompt)
+      } else {
+        return await this.callOllamaForBolt(prompt)
       }
-
-      const data = await response.json()
-      const content = data.message?.content || "No response generated."
-
-      return content
     } catch (error) {
-      console.error("❌ Error calling Ollama:", error)
+      console.error("❌ Error calling LLM:", error)
       console.log("🔄 Falling back to contextual response...")
       // Fall back to the existing method
       return this.generateAdvancedContextualResponse(
@@ -407,6 +435,80 @@ Response:`
         )?.[1] || ""
       )
     }
+  }
+
+  private async callOpenAIForBolt(prompt: string): Promise<string> {
+    const apiKey = import.meta.env.VITE_LLM_API_KEY
+    if (!apiKey) throw new Error("OpenAI requires VITE_LLM_API_KEY")
+
+    // Check if this is an OpenRouter API key and configure accordingly
+    const isOpenRouter = apiKey.startsWith("sk-or-v1-")
+    const baseURL = isOpenRouter
+      ? "https://openrouter.ai/api/v1"
+      : "https://api.openai.com/v1"
+
+    const model = isOpenRouter
+      ? import.meta.env.VITE_DEFAULT_AI_MODEL || "openai/gpt-3.5-turbo"
+      : "gpt-3.5-turbo"
+
+    const response = await fetch(`${baseURL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an AI executive assistant providing strategic insights.",
+          },
+          { role: "user", content: prompt },
+        ],
+        stream: false,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
+    }
+
+    const data = await response.json()
+    return data.choices?.[0]?.message?.content || "No response generated."
+  }
+
+  private async callOllamaForBolt(prompt: string): Promise<string> {
+    const ollamaUrl =
+      import.meta.env.VITE_OLLAMA_URL || "http://localhost:11434"
+
+    const response = await fetch(`${ollamaUrl}/api/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama3.2:latest",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an AI executive assistant providing strategic insights.",
+          },
+          { role: "user", content: prompt },
+        ],
+        stream: false,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.message?.content || "No response generated."
   }
 
   private generateAdvancedContextualResponse(

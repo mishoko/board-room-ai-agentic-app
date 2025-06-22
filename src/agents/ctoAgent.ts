@@ -411,7 +411,6 @@ Return JSON response with assessment (approve/reject/neutral), confidence (0-100
     },
     model: CTOAssessment,
     agentName: "ctoAgent",
-    provider: "ollama", // Explicitly set to use Ollama
     defaultFactory: () => {
       const assessment = new CTOAssessment()
       assessment.reasoning =

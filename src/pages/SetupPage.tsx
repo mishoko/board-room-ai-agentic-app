@@ -706,8 +706,8 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
             </div>
 
             {/* Start Session Button in Topics Step */}
-            {canProceed() && (
-              <div className="text-center pt-6 border-t border-slate-600">
+            <div className="text-center pt-6 border-t border-slate-600">
+              {canProceed() ? (
                 <button
                   onClick={handleStartSession}
                   disabled={isGenerating}
@@ -732,8 +732,25 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                     </>
                   )}
                 </button>
-              </div>
-            )}
+              ) : (
+                <div className="space-y-3">
+                  <button
+                    disabled
+                    className="flex items-center gap-3 px-8 py-4 rounded-lg font-medium text-lg transition-all duration-200 mx-auto bg-slate-600 text-slate-400 cursor-not-allowed"
+                  >
+                    <Play className="w-5 h-5" />
+                    Start Boardroom Session
+                  </button>
+                  <p className="text-sm text-amber-400 flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-amber-400 flex items-center justify-center text-amber-900 text-xs font-bold">
+                      !
+                    </span>
+                    Please ensure all topics have both title and description
+                    filled in
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )
 
@@ -959,28 +976,41 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
             ) : (
               <>
                 {currentStep !== "topics" && (
-                  <button
-                    onClick={() => {
-                      const currentIndex = steps.findIndex(
-                        (s) => s.id === currentStep
-                      )
-                      if (currentIndex < steps.length - 1) {
-                        setCurrentStep(steps[currentIndex + 1].id as any)
+                  <div className="flex flex-col items-end">
+                    <button
+                      onClick={() => {
+                        const currentIndex = steps.findIndex(
+                          (s) => s.id === currentStep
+                        )
+                        if (currentIndex < steps.length - 1) {
+                          setCurrentStep(steps[currentIndex + 1].id as any)
+                        }
+                      }}
+                      disabled={!canProceed()}
+                      className={`
+                      flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200
+                      ${
+                        canProceed()
+                          ? "bg-purple-600 text-white hover:bg-purple-700"
+                          : "bg-slate-600 text-slate-400 cursor-not-allowed"
                       }
-                    }}
-                    disabled={!canProceed()}
-                    className={`
-                    flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200
-                    ${
-                      canProceed()
-                        ? "bg-purple-600 text-white hover:bg-purple-700"
-                        : "bg-slate-600 text-slate-400 cursor-not-allowed"
-                    }
-                  `}
-                  >
-                    Next
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                    `}
+                    >
+                      Next
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    {!canProceed() && (
+                      <p className="text-xs text-amber-400 mt-1 flex items-center gap-1">
+                        <span className="w-3 h-3 rounded-full bg-amber-400 flex items-center justify-center text-amber-900 text-xs font-bold">
+                          !
+                        </span>
+                        {currentStep === "company" &&
+                          "Please fill in all required company fields"}
+                        {currentStep === "agents" &&
+                          "Please select at least one agent"}
+                      </p>
+                    )}
+                  </div>
                 )}
               </>
             )}
