@@ -9,6 +9,10 @@
 
 > **🏆 Bolt.new Hackathon Submission** - Revolutionizing executive decision-making with AI-powered agentic boardroom simulations
 
+
+**Public deply:** https://jolly-salamander-77a282.netlify.app/
+
+
 **Follow the creator:** [@mishoko](https://x.com/0xmishoko)
 
 ---
@@ -16,6 +20,9 @@
 ## What It Is
 
 **AI Agentic Boardroom** is a cutting-edge simulation platform that creates realistic C-level executive discussions using advanced AI agents. Unlike traditional chatbots, our agents exhibit **emergent behavior**, **challenge each other**, and provide **contextually-aware strategic insights** that mirror real boardroom dynamics.
+
+![Boardroom screenshot](/public/assets/br_sch1.png)
+
 
 ### Advanced Features
 
@@ -174,4 +181,7 @@ VITE_DEFAULT_AI_MODEL=google/gemma-3-27b-it:free
 
 ---
 
-Built with ❤️ using Bolt.new for the Bolt.new Hackathon 2025 - world's largest hackathon
+
+Built with ❤️ using Bolt.new for the Bolt.new Hackathon 2025
+
+![bolt.new logo](/public/assets/white_circle_360x360.png)
