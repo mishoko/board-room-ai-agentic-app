@@ -1,6 +1,6 @@
 {
   "name": "ai-agentic-boardroom",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AI-powered executive boardroom simulation with sophisticated C-level agents for strategic discussions",
   "private": true,
   "type": "module",

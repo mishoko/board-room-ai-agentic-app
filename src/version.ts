@@ -1,9 +1,9 @@
 // Auto-generated version file - DO NOT EDIT MANUALLY
-// Updated: 2025-06-21T07:55:54.463Z
+// Updated: 2025-06-27T05:43:15.524Z
 
-export const VERSION = '1.0.0';
-export const BUILD_DATE = '2025-06-21T07:55:54.463Z';
-export const BUILD_TIMESTAMP = 1750492554463;
+export const VERSION = '1.1.0';
+export const BUILD_DATE = '2025-06-27T05:43:15.524Z';
+export const BUILD_TIMESTAMP = 1751002995524;
 
 // Version utilities
 export const getVersionInfo = () => ({
