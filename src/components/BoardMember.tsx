@@ -1,17 +1,10 @@
 import React, { useState, useEffect, useRef } from "react"
-import { User } from "lucide-react"
+
+type Position = 'top-left' | 'top-center' | 'top-right' | 'middle-left' | 'middle-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
 
 interface BoardMemberProps {
-  name: string
-  position:
-    | "top-left"
-    | "top-center"
-    | "top-right"
-    | "middle-left"
-    | "middle-right"
-    | "bottom-left"
-    | "bottom-center"
-    | "bottom-right"
+  name: string;
+  position: Position;
   message: string
   isActive: boolean
   onBubbleHover?: (isHovering: boolean) => void
@@ -92,7 +85,7 @@ const BoardMember: React.FC<BoardMemberProps> = ({
         cyclingTimerRef.current = null
       }
     }
-  }, [isActive, message, isHovering, hasMultipleParts])
+  }, [isActive, message, isHovering, hasMultipleParts, messageParts.length])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -105,14 +98,14 @@ const BoardMember: React.FC<BoardMemberProps> = ({
   }, [])
 
   const handleMouseEnter = () => {
-    setIsHovering(true)
-    onBubbleHover?.(true)
-  }
+    setIsHovering(true);
+    if (onBubbleHover) onBubbleHover(true);
+  };
 
   const handleMouseLeave = () => {
-    setIsHovering(false)
-    onBubbleHover?.(false)
-  }
+    setIsHovering(false);
+    if (onBubbleHover) onBubbleHover(false);
+  };
 
   const getPositionClasses = () => {
     switch (position) {
@@ -195,12 +188,73 @@ const BoardMember: React.FC<BoardMemberProps> = ({
     return message
   }
 
+  // Map of role to image UUIDs - each role gets a unique image
+  const roleToImageMap: Record<string, string> = {
+    // Core C-Suite
+    ceo: "25ebac30-7f4d-458c-8d43-9bc479d35e46.jpeg",
+    cto: "d4001534-4838-47bb-8ba5-7873536b698e.jpeg",
+    cfo: "53e003aa-7f62-42d6-9fc5-2e79330a2c74.jpeg",
+    cmo: "5cabf84f-5bcf-4938-bce6-47a0a163ecd4.jpeg",
+    chro: "e4e4edd0-7b34-4c7d-b14f-bb06fbb0b7db.jpeg",
+    coo: "6ff7564e-4f93-46c0-beaf-1b8ba1374ee6.jpeg",
+    cpo: "b15d095b-5175-49ff-ba73-b4d754218b3f.jpeg",
+
+    // Extended Leadership Team
+    cdo: "1d0dd718-2aee-412c-a510-99a621959fb8.jpeg",
+    cso: "90e31299-41fd-4c46-937f-e59d7be08475.jpeg",
+    cio: "7d98a3a2-e0a8-4801-8a19-a5b8fcbc8a52.jpeg",
+    ciso: "8c430fff-8394-4e6d-8bd5-8fc6a7d9278a.jpeg",
+    clo: "206f3fb7-cd4c-42ac-ab9c-b7984b4b54f4.jpeg",
+    cro: "21638b99-ac58-4083-8b12-24f876828552.jpeg",
+    cvco: "301ce5cb-3196-4a53-87b3-24c74ae5565a.jpeg",
+    chco: "3911e255-4977-49d2-bcc8-86c9c8615444.jpeg",
+    caio: "52231ed9-57aa-4bbf-bc5f-a237f4f52f5c.jpeg",
+    cgro: "eae0d68c-a4a6-409c-810f-0e6ca1e32f51.jpeg",
+
+    // Fallback for any unmapped roles
+    default: "white_circle_360x360.png.png",
+  }
+
+  const getAgentImage = (role: string, position: Position): string => {
+    const roleLower = role.toLowerCase()
+    
+    // If this is the middle position, use the white circle
+    if (position === 'middle-left' || position === 'middle-right') {
+      return '/assets/white_circle_360x360.png'
+    }
+    
+    // Otherwise, use the mapped image or a default
+    const imageName = roleToImageMap[roleLower] || 'download.jpeg';
+    return `/assets/${imageName}`
+  };
+
   return (
     <div className={getPositionClasses()}>
       {/* Board Member Avatar */}
       <div className={`relative ${isActive ? "animate-pulse" : ""}`}>
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
-          <User className="w-8 h-8 text-white" />
+        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-lg">
+          <img 
+            src={getAgentImage(name, position)} 
+            alt={name} 
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback to a colored background with initial if image fails to load
+              const target = e.target as HTMLImageElement
+              target.onerror = null
+              target.src = ''
+              target.className = 'hidden'
+              const parent = target.parentElement
+              if (parent) {
+                const fallback = document.createElement('div')
+                fallback.className = 'w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center'
+                const initial = document.createElement('span')
+                initial.className = 'text-white font-bold'
+                initial.textContent = name[0].toUpperCase()
+                fallback.appendChild(initial)
+                parent.appendChild(fallback)
+              }
+            }}
+          />
         </div>
         <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded-full whitespace-nowrap">
           {name}

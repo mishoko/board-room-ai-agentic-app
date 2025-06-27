@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react"
 import BoardMember from "./BoardMember"
-import { Users, User, Pause, Play, MessageSquare, Send } from "lucide-react"
+import { User, Pause, Play, MessageSquare, Send } from "lucide-react"
 import { BoardAgentBase } from "../agents/BoardAgentBase"
 import { Topic, Message, TopicState } from "../types"
 import { TopicStateManager } from "../agents/TopicStateManager"
@@ -1077,24 +1077,31 @@ const BoardroomTable: React.FC<BoardroomTableProps> = ({
         <div className="absolute inset-4 bg-gradient-to-br from-green-700/20 to-green-800/20 rounded-full"></div>
 
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="w-20 h-20 bg-slate-800/70 rounded-full flex items-center justify-center border-2 border-amber-600/50">
-            <Users className="w-8 h-8 text-amber-400" />
+          <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-amber-600/50">
+            <img 
+              src="/assets/black_circle_360x360.png" 
+              alt="Table Center" 
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
 
         {/* Board Members with Enhanced Hover Controls */}
-        {agents.map((agent, index) => (
-          <BoardMember
-            key={agent.getAgent().id}
-            name={agent.getAgent().role}
-            position={getAgentPosition(index, agents.length)}
-            message={currentMessages[agent.getAgent().role] || ""}
-            isActive={
-              activeMembers.includes(agent.getAgent().role) && !isTopicCompleted
-            }
-            onBubbleHover={handleBubbleHover}
-          />
-        ))}
+        {agents.map((agent, index) => {
+          const agentData = agent.getAgent()
+          return (
+            <BoardMember
+              key={agentData.id}
+              name={agentData.role}
+              position={getAgentPosition(index, agents.length)}
+              message={currentMessages[agentData.role] || ""}
+              isActive={
+                activeMembers.includes(agentData.role) && !isTopicCompleted
+              }
+              onBubbleHover={handleBubbleHover}
+            />
+          )
+        })}
 
         {/* Enhanced Control Panel - Task 3: Moved closer to border */}
         <div className="absolute bottom-1 right-1 flex items-center gap-2 z-20">

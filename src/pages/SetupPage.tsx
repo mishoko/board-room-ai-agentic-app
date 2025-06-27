@@ -301,22 +301,57 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
 
   const handleAgentToggle = (agentTemplate: Omit<Agent, "id" | "isActive">) => {
     const agentId = `agent-${agentTemplate.role.toLowerCase()}`
-    const existingIndex = selectedAgents.findIndex(
+    const isSelected = selectedAgents.some(
       (agent) => agent.id === agentId
     )
 
-    if (existingIndex >= 0) {
-      setSelectedAgents(
-        selectedAgents.filter((_, index) => index !== existingIndex)
-      )
+    if (isSelected) {
+      setSelectedAgents(selectedAgents.filter((agent) => agent.id !== agentId))
     } else {
-      const newAgent: Agent = {
-        ...agentTemplate,
-        id: agentId,
-        isActive: true,
-      }
-      setSelectedAgents([...selectedAgents, newAgent])
+      setSelectedAgents([
+        ...selectedAgents,
+        {
+          ...agentTemplate,
+          id: agentId,
+          isActive: true,
+          imageUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(agentTemplate.name)}&background=random`,
+        },
+      ])
     }
+  }
+
+  // Map of role to image UUIDs - each role gets a unique image
+  const roleToImageMap: Record<string, string> = {
+    // Core C-Suite
+    ceo: "25ebac30-7f4d-458c-8d43-9bc479d35e46.jpeg",
+    cto: "d4001534-4838-47bb-8ba5-7873536b698e.jpeg",
+    cfo: "53e003aa-7f62-42d6-9fc5-2e79330a2c74.jpeg",
+    cmo: "5cabf84f-5bcf-4938-bce6-47a0a163ecd4.jpeg",
+    chro: "e4e4edd0-7b34-4c7d-b14f-bb06fbb0b7db.jpeg",
+    coo: "6ff7564e-4f93-46c0-beaf-1b8ba1374ee6.jpeg",
+    cpo: "b15d095b-5175-49ff-ba73-b4d754218b3f.jpeg",
+
+    // Extended Leadership Team
+    cdo: "1d0dd718-2aee-412c-a510-99a621959fb8.jpeg",
+    cso: "90e31299-41fd-4c46-937f-e59d7be08475.jpeg",
+    cio: "7d98a3a2-e0a8-4801-8a19-a5b8fcbc8a52.jpeg",
+    ciso: "8c430fff-8394-4e6d-8bd5-8fc6a7d9278a.jpeg",
+    clo: "206f3fb7-cd4c-42ac-ab9c-b7984b4b54f4.jpeg",
+    cro: "21638b99-ac58-4083-8b12-24f876828552.jpeg",
+    cvco: "301ce5cb-3196-4a53-87b3-24c74ae5565a.jpeg",
+    chco: "3911e255-4977-49d2-bcc8-86c9c8615444.jpeg",
+    caio: "52231ed9-57aa-4bbf-bc5f-a237f4f52f5c.jpeg",
+    cgro: "eae0d68c-a4a6-409c-810f-0e6ca1e32f51.jpeg",
+
+    // Fallback for any unmapped roles
+    default: "white_circle_360x360.png",
+  }
+
+  // Get agent image based on role
+  const getAgentImage = (role: string): string => {
+    const roleLower = role.toLowerCase();
+    const imageName = roleToImageMap[roleLower] || 'download.jpeg';
+    return `/assets/${imageName}`;
   }
 
   const addTopic = () => {
@@ -573,15 +608,43 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSessionStart }) => {
                       }
                     `}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold">{agent.role}</h3>
-                      <div
-                        className={`w-4 h-4 rounded-full border-2 ${
-                          isSelected
-                            ? "bg-purple-500 border-purple-500"
-                            : "border-slate-400"
-                        }`}
-                      />
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="font-semibold">{agent.role}</h3>
+                        <p className="text-sm text-slate-300">{agent.name}</p>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30">
+                          <img 
+                            src={getAgentImage(agent.role)}
+                            alt={agent.role}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.onerror = null
+                              target.src = ''
+                              target.className = 'hidden'
+                              const parent = target.parentElement
+                              if (parent) {
+                                const fallback = document.createElement('div')
+                                fallback.className = 'w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center'
+                                const initial = document.createElement('span')
+                                initial.className = 'text-white font-bold'
+                                initial.textContent = agent.role[0].toUpperCase()
+                                fallback.appendChild(initial)
+                                parent.appendChild(fallback)
+                              }
+                            }}
+                          />
+                        </div>
+                        <div 
+                          className={`ml-3 w-5 h-5 rounded-full border-2 flex-shrink-0 ${
+                            isSelected
+                              ? "bg-purple-500 border-purple-500"
+                              : "border-slate-400"
+                          }`}
+                        />
+                      </div>
                     </div>
                     <p className="text-sm opacity-90 mb-2">{agent.name}</p>
                     <p className="text-xs opacity-75 line-clamp-2">
